@@ -1,0 +1,127 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  IMAGE: guizmos/gamify
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Compute tags
+        id: meta
+        shell: bash
+        run: |
+          IMAGE="${{ env.IMAGE }}"
+          REF="${GITHUB_REF}"
+
+          TAGS=()
+
+          # Tag Git (release) => latest + vX.Y.Z + X.Y.Z
+          if [[ "$REF" == refs/tags/v* ]]; then
+            VERSION_WITH_V="${REF#refs/tags/}"   # v1.0.0
+            VERSION="${VERSION_WITH_V#v}"        # 1.0.0
+
+            TAGS+=("${IMAGE}:latest")
+            TAGS+=("${IMAGE}:${VERSION_WITH_V}")
+            TAGS+=("${IMAGE}:${VERSION}")
+          else
+            # Manuel => tags dev (ne touche pas latest)
+            SHORT_SHA="${GITHUB_SHA::7}"
+            TAGS+=("${IMAGE}:dev")
+            TAGS+=("${IMAGE}:sha-${SHORT_SHA}")
+          fi
+
+          # Output multiline tags (format attendu par build-push-action)
+          {
+            echo "tags<<EOF"
+            printf "%s\n" "${TAGS[@]}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and push (multi-arch)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  release:
+    needs: build-and-push
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository (avec tags)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Générer les notes de release
+        id: notes
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"   # ex: v1.1.0
+          PREV_TAG=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || echo "")
+
+          if [ -n "$PREV_TAG" ]; then
+            RANGE="$PREV_TAG..$TAG"
+          else
+            RANGE="$TAG"
+          fi
+
+          git log --pretty=format:'%s' $RANGE > raw-commits.txt
+
+          {
+            echo "Changements pour ${TAG} :"
+            echo
+            while IFS= read -r subject; do
+              IFS='+' read -ra PARTS <<< "$subject"
+              for part in "${PARTS[@]}"; do
+                trimmed="$(echo "$part" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+                [ -z "$trimmed" ] && continue
+                echo "- $trimmed"
+              done
+            done < raw-commits.txt
+          } > release-notes.md
+
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          cat release-notes.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body: ${{ steps.notes.outputs.body }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
