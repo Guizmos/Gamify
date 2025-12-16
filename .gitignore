@@ -16,7 +16,14 @@ npm-debug.log*
 
 #script
 *.ps1
+.env_*
 
 # Synology metadata
 @eaDir/
 public/@eaDir/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

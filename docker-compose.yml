@@ -1,19 +1,27 @@
 services:
   gamify:
     image: guizmos/gamify:latest
-    container_name: GAMEIFY
-    environment:
-      - GAMES_ROOT=/games
-      - DATA_DIR=/data
-      - DB_PATH=/data/gamenotify.sqlite
-      - JWT_SECRET=${JWT_SECRET:-change_me_dev_only}
-      - ADMIN_BOOTSTRAP_USER=${ADMIN_BOOTSTRAP_USER:-admin}
-      - ADMIN_BOOTSTRAP_PASS=${ADMIN_BOOTSTRAP_PASS:-admin123}
-      - IGDB_CLIENT_ID=IGDBCLIENTID
-      - IGDB_CLIENT_SECRET=IGDBCLIENTSECRET
+    container_name: GAMIFY
+    restart: unless-stopped
+
     ports:
       - "7071:8080"
+
+    environment:
+      # Chemins internes
+      GAMES_ROOT: /games
+      DATA_DIR: /data
+      DB_PATH: /data/gamify.sqlite
+
+      # Sécurité
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_BOOTSTRAP_USER: ${ADMIN_BOOTSTRAP_USER:-admin}
+      ADMIN_BOOTSTRAP_PASS: ${ADMIN_BOOTSTRAP_PASS}
+
+      # IGDB
+      IGDB_CLIENT_ID: ${IGDB_CLIENT_ID}
+      IGDB_CLIENT_SECRET: ${IGDB_CLIENT_SECRET}
+
     volumes:
       - /volume1/Docker/Gamify/data:/data
-      - /volume1/Jeux:/games:ro"
-    restart: unless-stopped
+      - /volume1/Jeux:/games:ro
