@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Gamify - Telegram</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <a href="/" class="ghost">← Retour</a>
+      <h1>Paramètres Telegram</h1>
+    </header>
+
+    <main class="panel">
+      <label><input type="checkbox" id="enabled"> Activer Telegram</label>
+      <input id="token" placeholder="Bot token">
+      <input id="chat" placeholder="Chat ID">
+      <button id="save">Enregistrer</button>
+      <p id="msg"></p>
+    </main>
+  </div>
+
+  <script src="telegram.js"></script>
+</body>
+</html>

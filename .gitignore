@@ -1,0 +1,22 @@
+# Données runtime (DB + logs)
+data/
+*.db
+*.db-shm
+*.db-wal
+*.log
+*.sh
+*.sqlite
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Config locales
+.env
+
+#script
+*.ps1
+
+# Synology metadata
+@eaDir/
+public/@eaDir/

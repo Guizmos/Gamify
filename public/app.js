@@ -1,0 +1,530 @@
+const statusEl = document.getElementById("status");
+const gridEl = document.getElementById("grid");
+const scanBtn = document.getElementById("btn-scan");
+const archiveBtn = document.getElementById("btn-archive");
+const sortBtn = document.getElementById("btn-sort");
+const searchEl = document.getElementById("search");
+const logoutBtn = document.getElementById("btn-logout");
+const settingsBtn = document.getElementById("btn-settings");
+
+let currentUser = null;
+let isAdmin = false;
+
+let showArchive = false;
+let sortMode = "name_asc";
+
+// ✅ filtre plateforme persistant
+let platformFilter = localStorage.getItem("gamify_platform_filter") || "";
+
+function esc(str){
+  return String(str ?? "").replace(/[&<>"']/g, s => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[s]));
+}
+
+function badge(text, cls=""){ return `<span class="badge ${cls}">${esc(text)}</span>`; }
+
+function platformLabel(p){
+  return (!p || p === "Autre") ? "PC" : p;
+}
+
+function formatGB(bytes){
+  const n = Number(bytes);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const gb = n / (1024 ** 3);
+  return gb >= 100 ? gb.toFixed(0) : gb.toFixed(1);
+}
+
+async function ensureLoggedIn() {
+  const res = await fetch("/api/auth/me");
+  const data = await res.json();
+
+  if (!data.ok) {
+    window.location.href = "/login.html";
+    return null;
+  }
+
+  currentUser = data.user;
+  isAdmin = currentUser.role === "admin";
+
+  const scanBtn     = document.getElementById("btn-scan");
+  const archiveBtn  = document.getElementById("btn-archive");
+  const settingsBtn = document.getElementById("btn-settings");
+  const sortBtn     = document.getElementById("btn-sort");
+  const logoutBtn   = document.getElementById("btn-logout");
+
+  // Admin only
+  if (scanBtn)     scanBtn.style.display     = isAdmin ? "" : "none";
+  if (archiveBtn)  archiveBtn.style.display  = isAdmin ? "" : "none";
+  if (settingsBtn) settingsBtn.style.display = isAdmin ? "" : "none";
+
+  // Toujours visibles
+  if (sortBtn)   sortBtn.style.display   = "";
+  if (logoutBtn) logoutBtn.style.display = "";
+
+  return currentUser;
+}
+
+async function getSettings() {
+  const res = await fetch("/api/settings");
+  return await res.json();
+}
+
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login.html";
+  });
+}
+
+/* ------------------------------ MENU + MODAL ------------------------------ */
+
+let openMenuEl = null;
+
+function closeMenu() {
+  if (openMenuEl) {
+    openMenuEl.classList.remove("open");
+    openMenuEl = null;
+  }
+}
+
+document.addEventListener("click", (e) => {
+  // click hors menu => ferme
+  if (!e.target.closest(".card-menu")) closeMenu();
+});
+
+/* --- Filtre plateforme (menu style ⋮) --- */
+const platformMenuBtn = document.getElementById("platform-menu-btn");
+const platformMenu    = document.getElementById("platform-menu");
+
+if (platformMenuBtn && platformMenu) {
+  platformMenuBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // ferme l’ancien menu (carte ou filtre)
+    if (openMenuEl && openMenuEl !== platformMenu) {
+      openMenuEl.classList.remove("open");
+    }
+
+    const nowOpen = !platformMenu.classList.contains("open");
+    platformMenu.classList.toggle("open", nowOpen);
+    openMenuEl = nowOpen ? platformMenu : null;
+  });
+
+  platformMenu.querySelectorAll(".menu-item").forEach(item => {
+    item.addEventListener("click", async (e) => {
+      e.preventDefault();
+      platformFilter = item.dataset.platform || "";
+      localStorage.setItem("gamify_platform_filter", platformFilter);
+      closeMenu();
+      await loadGames();
+    });
+  });
+}
+
+/* ------------------------------ POSTER MODAL ------------------------------ */
+
+function ensurePosterModal() {
+  let modal = document.getElementById("poster-modal");
+  if (modal) return modal;
+
+  modal = document.createElement("div");
+  modal.id = "poster-modal";
+  modal.className = "modal";
+  modal.innerHTML = `
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__panel" role="dialog" aria-modal="true">
+      <div class="modal__head">
+        <div>
+          <div class="modal__title">Choisir une pochette</div>
+          <div class="modal__sub muted" id="poster-sub">Recherche IGDB</div>
+        </div>
+        <button class="btn btn-ghost icon-only" type="button" data-close title="Fermer">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+
+      <div class="modal__body">
+        <div class="poster-search">
+          <span class="material-symbols-rounded" aria-hidden="true">search</span>
+          <input id="poster-q" type="text" placeholder="Rechercher sur IGDB..." />
+          <button id="poster-go" class="btn btn-primary" type="button">Rechercher</button>
+        </div>
+
+        <div id="poster-results" class="poster-results"></div>
+      </div>
+
+      <div class="modal__foot">
+        <button class="btn btn-ghost" type="button" data-close>Annuler</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  modal.addEventListener("click", (e) => {
+    if (e.target.matches("[data-close]")) {
+      modal.classList.remove("open");
+    }
+  });
+
+  return modal;
+}
+
+async function openPosterPicker(gameId, currentName) {
+  const modal = ensurePosterModal();
+  const qInput = modal.querySelector("#poster-q");
+  const goBtn = modal.querySelector("#poster-go");
+  const results = modal.querySelector("#poster-results");
+  const sub = modal.querySelector("#poster-sub");
+
+  qInput.value = currentName || "";
+  results.innerHTML = "";
+  sub.textContent = "Recherche IGDB";
+
+  modal.dataset.gameId = String(gameId);
+  modal.classList.add("open");
+
+  async function runSearch() {
+    const q = qInput.value.trim();
+    if (!q) return;
+
+    results.innerHTML = `<div class="muted">Recherche en cours…</div>`;
+    sub.textContent = `Résultats pour : ${q}`;
+
+    const url = new URL(`/api/games/${gameId}/igdb-search`, window.location.origin);
+    url.searchParams.set("q", q);
+    url.searchParams.set("limit", "10");
+
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!data.ok) {
+      results.innerHTML = `<div class="muted">Erreur: ${esc(data.error || "IGDB")}</div>`;
+      return;
+    }
+
+    if (!data.hits?.length) {
+      results.innerHTML = `<div class="muted">Aucun résultat.</div>`;
+      return;
+    }
+
+    results.innerHTML = data.hits.map(h => {
+      const cover = h.cover_url
+        ? `<img src="${esc(h.cover_url)}" alt="">`
+        : `<div class="poster-cover placeholder">no cover</div>`;
+
+      const igdbLink = h.igdb_url ? `<a class="poster-link" href="${esc(h.igdb_url)}" target="_blank" rel="noreferrer">IGDB</a>` : "";
+
+      return `
+        <button class="poster-item" type="button"
+          data-igdb-id="${esc(h.igdb_id)}"
+          data-slug="${esc(h.slug || "")}"
+          data-cover="${esc(h.cover_url || "")}"
+          data-url="${esc(h.igdb_url || "")}">
+          <div class="poster-cover">${cover}</div>
+          <div class="poster-meta">
+            <div class="poster-name">${esc(h.name)}</div>
+            <div class="poster-actions">${igdbLink}<span class="poster-apply">Appliquer</span></div>
+          </div>
+        </button>
+      `;
+    }).join("");
+
+    results.querySelectorAll(".poster-item").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const igdb_id = Number(btn.dataset.igdbId);
+        const slug = btn.dataset.slug || null;
+        const cover_url = btn.dataset.cover || null;
+        const igdb_url = btn.dataset.url || null;
+
+        results.innerHTML = `<div class="muted">Application…</div>`;
+
+        const applyRes = await fetch(`/api/games/${gameId}/igdb-apply`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ igdb_id, slug, cover_url, igdb_url })
+        });
+
+        const applyData = await applyRes.json().catch(() => ({}));
+        if (!applyData.ok) {
+          results.innerHTML = `<div class="muted">Erreur: ${esc(applyData.error || "apply")}</div>`;
+          return;
+        }
+
+        modal.classList.remove("open");
+        statusEl.textContent = "Pochette mise à jour ✅";
+        await loadGames();
+      });
+    });
+  }
+
+  goBtn.onclick = runSearch;
+  qInput.onkeydown = (e) => { if (e.key === "Enter") runSearch(); };
+
+  // recherche auto à l’ouverture
+  runSearch();
+}
+
+/* ------------------------------ RENDER ------------------------------ */
+
+function render(games){
+  gridEl.innerHTML = games.map(g => {
+    const notifCls = g.notif_status === "sent" ? "ok" : "warn";
+    const igdbCls  = g.igdb_status === "matched" ? "ok" : "warn";
+
+    const coverHtml = g.igdb_cover_url
+      ? `<img src="${esc(g.igdb_cover_url)}" alt="" loading="lazy">`
+      : `<div class="cover-placeholder">no cover</div>`;
+
+    const archivedBadge = g.is_deleted ? badge("Archivé", "warn") : "";
+
+    const sizeGb = formatGB(g.folder_size_bytes);
+    const sizeBadge = sizeGb ? badge(`${sizeGb} Go`) : "";
+
+    return `
+      <article class="card">
+        <div class="cover">
+          ${coverHtml}
+
+          ${isAdmin ? `
+            <div class="card-menu" data-menu="${g.id}">
+              <button class="menu-btn" type="button" title="Options" data-menu-btn="${g.id}">
+                <span class="material-symbols-rounded">more_vert</span>
+              </button>
+              <div class="menu-pop">
+                <button class="menu-item" type="button" data-action="poster" data-id="${g.id}">
+                  <span class="material-symbols-rounded">image</span>
+                  Poster
+                </button>
+                <button class="menu-item" type="button" data-action="other" data-id="${g.id}">
+                  <span class="material-symbols-rounded">more_horiz</span>
+                  Autres
+                </button>
+              </div>
+            </div>
+          ` : ``}
+        </div>
+
+        <div class="meta">
+          <p class="title">${esc(g.display_name)}</p>
+
+          <div class="row" style="align-items:center; justify-content:space-between;">
+            <div class="row" style="margin:0;">
+              ${badge(platformLabel(g.platform))}
+              ${sizeBadge}
+              ${archivedBadge}
+            </div>
+
+            ${isAdmin ? `
+              <button class="mini" data-notify="${g.id}" title="Renvoyer notif Telegram">
+                <span class="material-symbols-rounded">notifications</span>
+              </button>
+            ` : ``}
+          </div>
+
+          ${isAdmin ? `
+            <div class="row" style="margin-top:10px;">
+              ${badge("Notif: " + g.notif_status, notifCls)}
+              ${badge("IGDB: " + g.igdb_status, igdbCls)}
+            </div>
+          ` : ``}
+        </div>
+      </article>
+    `;
+  }).join("");
+
+  // Events admin-only
+  if (isAdmin) {
+    // Notif button
+    gridEl.querySelectorAll("[data-notify]").forEach(btn=>{
+      btn.addEventListener("click", (e)=>{
+        e.preventDefault();
+        notifyGame(Number(btn.dataset.notify));
+      });
+    });
+
+    // Menu toggle (cartes)
+    gridEl.querySelectorAll("[data-menu-btn]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const id = btn.dataset.menuBtn;
+        const wrap = gridEl.querySelector(`.card-menu[data-menu="${id}"]`);
+        if (!wrap) return;
+
+        // ferme l’ancien
+        if (openMenuEl && openMenuEl !== wrap) openMenuEl.classList.remove("open");
+
+        const nowOpen = !wrap.classList.contains("open");
+        wrap.classList.toggle("open", nowOpen);
+        openMenuEl = nowOpen ? wrap : null;
+      });
+    });
+
+    // Menu actions (cartes) -> uniquement sur data-action
+    gridEl.querySelectorAll(".menu-item[data-action]").forEach(item => {
+      item.addEventListener("click", async (e) => {
+        e.preventDefault();
+        const action = item.dataset.action;
+        const id = Number(item.dataset.id);
+
+        closeMenu();
+
+        if (action === "poster") {
+          const cardTitle = item.closest(".card")?.querySelector(".title")?.textContent || "";
+          await openPosterPicker(id, cardTitle);
+        } else if (action === "other") {
+          statusEl.textContent = "Autres : à définir 😉";
+        }
+      });
+    });
+  }
+}
+
+async function notifyGame(id){
+  try{
+    const res = await fetch(`/api/games/${id}/notify`, { method:"POST" });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error || "Erreur notif");
+    statusEl.textContent = "Notif envoyée ✅";
+    await loadGames();
+  }catch(e){
+    statusEl.textContent = "Notif KO";
+    console.error(e);
+  }
+}
+
+async function loadGames(){
+  const q = (searchEl?.value || "").trim();
+  statusEl.textContent = "Chargement…";
+
+  const url = new URL("/api/games", window.location.origin);
+  if (q) url.searchParams.set("search", q);
+  if (platformFilter) url.searchParams.set("platform", platformFilter);
+  url.searchParams.set("limit", "300");
+  if (showArchive) url.searchParams.set("archive_only", "1");
+  url.searchParams.set("sort", sortMode);
+
+  let res;
+  try {
+    res = await fetch(url);
+  } catch (e) {
+    statusEl.textContent = "API injoignable";
+    console.error("fetch /api/games failed:", e);
+    return;
+  }
+
+  let data;
+  try {
+    data = await res.json();
+  } catch (e) {
+    const txt = await res.text().catch(() => "");
+    statusEl.textContent = "Erreur API (réponse non JSON)";
+    console.error("API /games non-JSON:", res.status, txt);
+    return;
+  }
+
+  if (!data.ok) {
+    statusEl.textContent = "Erreur API";
+    console.error("API /games error:", data);
+    return;
+  }
+
+  statusEl.textContent = showArchive
+    ? `${data.count} jeux archivés`
+    : `${data.count} jeux présents`;
+
+  render(data.games);
+}
+
+async function scan(){
+  if (!scanBtn) return;
+
+  scanBtn.disabled = true;
+  statusEl.textContent = "Scan en cours…";
+
+  try{
+    const s = await getSettings();
+    const watched = s?.watchedFolders || [];
+
+    if (!watched.length) {
+      statusEl.textContent = "⚠️ Aucun dossier surveillé.";
+      return;
+    }
+
+    const res = await fetch("/api/scan", { method:"POST" });
+
+    if (!res.ok) {
+      const txt = await res.text();
+      statusEl.textContent = `Scan KO (${res.status})`;
+      console.error("Scan error:", res.status, txt);
+      return;
+    }
+
+    const data = await res.json();
+    statusEl.textContent = `Scan OK: +${data.createdGames?.length ?? 0} (errors=${data.errors?.length ?? 0})`;
+    if (data.errors?.length) console.warn("Scan errors:", data.errors);
+
+    await loadGames();
+  }catch(e){
+    statusEl.textContent = "Scan KO (exception)";
+    console.error("Scan exception:", e);
+  }finally{
+    scanBtn.disabled = false;
+  }
+}
+
+/* boutons : ne casse plus les icônes */
+function setBtnText(btn, text) {
+  if (!btn) return;
+  const span = btn.querySelector(".btn-text");
+  if (span) span.textContent = text;
+  else btn.textContent = text;
+}
+
+function updateArchiveBtn() {
+  if (!archiveBtn) return;
+  archiveBtn.classList.toggle("active", showArchive);
+  setBtnText(archiveBtn, showArchive ? "Archive (ON)" : "Archive");
+}
+
+function updateSortBtn() {
+  if (!sortBtn) return;
+  sortBtn.classList.toggle("active", sortMode === "name_desc");
+  setBtnText(sortBtn, sortMode === "name_asc" ? "A→Z" : "Z→A");
+}
+
+if (archiveBtn) {
+  archiveBtn.addEventListener("click", async () => {
+    showArchive = !showArchive;
+    updateArchiveBtn();
+    await loadGames();
+  });
+}
+
+if (sortBtn) {
+  sortBtn.addEventListener("click", async () => {
+    sortMode = (sortMode === "name_asc") ? "name_desc" : "name_asc";
+    updateSortBtn();
+    await loadGames();
+  });
+}
+
+if (scanBtn) scanBtn.addEventListener("click", scan);
+
+let t;
+if (searchEl) {
+  searchEl.addEventListener("input", () => {
+    clearTimeout(t);
+    t = setTimeout(loadGames, 250);
+  });
+}
+
+updateArchiveBtn();
+updateSortBtn();
+
+ensureLoggedIn().then(u => {
+  if (!u) return;
+  loadGames();
+});

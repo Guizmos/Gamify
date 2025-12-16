@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gamify</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20,500,0,0" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1 class="app-title">Gamify</h1>
+      </div>
+
+      <div class="topbar-center">
+        <div class="topbar-filters">
+
+          <!-- Filtre plateforme (menu style ⋮) -->
+          <div class="platform-menu card-menu" id="platform-menu">
+            <button class="menu-btn" type="button" id="platform-menu-btn" title="Filtrer par plateforme">
+              <span class="material-symbols-rounded">filter_list</span>
+            </button>
+
+            <div class="menu-pop">
+              <button class="menu-item" type="button" data-platform="">
+                <span class="material-symbols-rounded">apps</span>
+                Tout
+              </button>
+              <button class="menu-item" type="button" data-platform="PC">
+                <span class="material-symbols-rounded">desktop_windows</span>
+                PC
+              </button>
+              <button class="menu-item" type="button" data-platform="Switch">
+                <span class="material-symbols-rounded">sports_esports</span>
+                Switch
+              </button>
+            </div>
+          </div>
+
+          <!-- Search -->
+          <div class="search">
+            <span class="material-symbols-rounded" aria-hidden="true">search</span>
+            <input id="search" type="search" placeholder="Rechercher un jeu…" />
+          </div>
+
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <button id="btn-scan" class="btn btn-primary icon-only" type="button" title="Rescanner">
+          <span class="material-symbols-rounded" aria-hidden="true">refresh</span>
+        </button>
+
+        <button id="btn-archive" class="btn btn-ghost" type="button" title="Archive">
+          <span class="material-symbols-rounded" aria-hidden="true">inventory_2</span>
+          <span class="btn-text">Archive</span>
+        </button>
+
+        <button id="btn-sort" class="btn btn-ghost" type="button" title="Tri alphabétique">
+          <span class="material-symbols-rounded" aria-hidden="true">sort_by_alpha</span>
+          <span class="btn-text">A→Z</span>
+        </button>
+
+        <a id="btn-settings" class="btn btn-ghost icon-only" href="/settings.html" title="Paramètres">
+          <span class="material-symbols-rounded" aria-hidden="true">settings</span>
+        </a>
+
+        <button id="btn-logout" class="btn btn-ghost" title="Déconnexion">
+          <span class="material-symbols-rounded">logout</span>
+          <span class="btn-text">Logout</span>
+        </button>
+      </div>
+    </header>
+
+
+    <p class="muted" id="status">Chargement…</p>
+
+    <main id="grid" class="grid"></main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
