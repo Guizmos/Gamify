@@ -3,7 +3,8 @@ services:
     image: guizmos/gamify:latest
     container_name: GAMIFY
     restart: unless-stopped
-
+    env_file:
+      - .env
     ports:
       - "7071:8080"
 

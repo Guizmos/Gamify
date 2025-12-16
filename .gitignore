@@ -16,7 +16,8 @@ npm-debug.log*
 
 #script
 *.ps1
-.env_*
+.env.dev
+.env.*
 
 # Synology metadata
 @eaDir/
