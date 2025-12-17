@@ -209,9 +209,8 @@ button.mini:hover .material-symbols-rounded{
   font-size: 14px;
 }
 
-/* On neutralise le style "card-menu" des cartes, mais sans casser le dropdown */
 #platform-menu.card-menu{
-  position: relative !important; /* pas static */
+  position: relative !important;
   top:auto !important;
   right:auto !important;
   z-index: 60 !important;

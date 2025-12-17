@@ -276,7 +276,7 @@ function render(games){
       ? `<img src="${esc(g.igdb_cover_url)}" alt="" loading="lazy">`
       : `<div class="cover-placeholder">no cover</div>`;
 
-    const archivedBadge = g.is_deleted ? badge("Archivé", "warn") : "";
+    const archivedBadge = (g.is_deleted || g.is_archived) ? badge("Archivé", "warn") : "";
 
     const sizeGb = formatGB(g.folder_size_bytes);
     const sizeBadge = sizeGb ? badge(`${sizeGb} Go`) : "";
@@ -296,9 +296,9 @@ function render(games){
                   <span class="material-symbols-rounded">image</span>
                   Poster
                 </button>
-                <button class="menu-item" type="button" data-action="other" data-id="${g.id}">
-                  <span class="material-symbols-rounded">more_horiz</span>
-                  Autres
+                <button class="menu-item" type="button" data-action="archive" data-id="${g.id}">
+                  <span class="material-symbols-rounded">archive</span>
+                  ${ (g.is_archived ? "Désarchiver" : "Archiver") }
                 </button>
               </div>
             </div>
@@ -333,9 +333,7 @@ function render(games){
     `;
   }).join("");
 
-  // Events admin-only
   if (isAdmin) {
-    // Notif button
     gridEl.querySelectorAll("[data-notify]").forEach(btn=>{
       btn.addEventListener("click", (e)=>{
         e.preventDefault();
@@ -343,7 +341,6 @@ function render(games){
       });
     });
 
-    // Menu toggle (cartes)
     gridEl.querySelectorAll("[data-menu-btn]").forEach(btn => {
       btn.addEventListener("click", (e) => {
         e.preventDefault();
@@ -353,7 +350,6 @@ function render(games){
         const wrap = gridEl.querySelector(`.card-menu[data-menu="${id}"]`);
         if (!wrap) return;
 
-        // ferme l’ancien
         if (openMenuEl && openMenuEl !== wrap) openMenuEl.classList.remove("open");
 
         const nowOpen = !wrap.classList.contains("open");
@@ -362,7 +358,6 @@ function render(games){
       });
     });
 
-    // Menu actions (cartes) -> uniquement sur data-action
     gridEl.querySelectorAll(".menu-item[data-action]").forEach(item => {
       item.addEventListener("click", async (e) => {
         e.preventDefault();
@@ -374,8 +369,11 @@ function render(games){
         if (action === "poster") {
           const cardTitle = item.closest(".card")?.querySelector(".title")?.textContent || "";
           await openPosterPicker(id, cardTitle);
-        } else if (action === "other") {
-          statusEl.textContent = "Autres : à définir 😉";
+        }
+        if (action === "archive") {
+          await fetch(`/api/games/${id}/archive`, { method: "POST" });
+          await loadGames();
+          return;
         }
       });
     });
@@ -475,7 +473,6 @@ async function scan(){
   }
 }
 
-/* boutons : ne casse plus les icônes */
 function setBtnText(btn, text) {
   if (!btn) return;
   const span = btn.querySelector(".btn-text");

@@ -4,9 +4,32 @@ const logger = require("./logger");
 const { getDb } = require("./db");
 const { searchGameByName } = require("./igdb");
 
-// ---- helpers ----
 function normalize(p) {
   return String(p || "").toLowerCase().replace(/\\/g, "/");
+}
+
+function shouldIgnorePcRootDir(folderName) {
+  const n = String(folderName || "").trim();
+  if (!n) return true;
+
+  const exact = new Set([
+    "@eaDir",
+    "@tmp",
+    "$RECYCLE.BIN",
+    "System Volume Information",
+    ".Trash",
+    ".Trashes",
+    ".DS_Store"
+  ]);
+  if (exact.has(n)) return true;
+
+  if (n.startsWith("@")) return true;
+
+  const lower = n.toLowerCase();
+  if (lower === "emulateur") return true;
+  if (lower === "emulators") return true;
+
+  return false;
 }
 
 function isStable(p, stabilitySec) {
@@ -61,12 +84,9 @@ function getFileSizeBytes(filePath) {
   try { return fs.statSync(filePath).size; } catch { return null; }
 }
 
-// règle plateforme demandée
 function detectPlatform(fullPath) {
-  // défaut PC
   const p = normalize(fullPath);
 
-  // Switch seulement dans Emulateur/Swicth (ou Switch) et .xci
   const isSwitchArea = p.includes("/emulateur/swicth/") || p.includes("/emulateur/switch/");
   const ext = path.extname(fullPath).toLowerCase();
   if (isSwitchArea && ext === ".xci") return "Switch";
@@ -79,7 +99,6 @@ function upsertGame({ folderName, displayName, fullPath, folderSizeBytes, platfo
 
   const exists = db.prepare("SELECT id FROM games WHERE full_path=?").get(fullPath);
   if (exists) {
-    // ✅ on update aussi platform / display_name / folder_name si besoin
     db.prepare(`
       UPDATE games
       SET last_seen_at=datetime('now'),
@@ -128,7 +147,6 @@ async function scanOnce() {
   const db = getDb();
   const stabilitySec = Number(getSetting("scan_stability_sec", "60"));
 
-  // Reset vu au dernier scan
   db.prepare("UPDATE games SET seen_in_last_scan=0").run();
 
   const watched = db.prepare("SELECT path FROM watched_folders WHERE enabled=1").all();
@@ -149,19 +167,20 @@ async function scanOnce() {
     const gameDirs = listDirectories(root);
 
     for (const gameDir of gameDirs) {
+      const folderName = path.basename(gameDir);
+      if (shouldIgnorePcRootDir(folderName)) continue;
+
       if (!isStable(gameDir, stabilitySec)) continue;
 
-      const folderName = path.basename(gameDir);
-      const displayName = folderName; // PC = nom du dossier
+      const displayName = folderName;
       const folderSizeBytes = null;
-      const platform = "PC"; // ✅ règle demandée
+      const platform = "PC";
 
       const res = upsertGame({ folderName, displayName, fullPath: gameDir, folderSizeBytes, platform });
 
       if (res.created) {
         createdGames.push({ id: res.id, folderName, fullPath: gameDir });
 
-        // IGDB auto (best effort)
         try {
           const r = await searchGameByName(displayName);
 
@@ -189,7 +208,6 @@ async function scanOnce() {
           errors.push(`IGDB error (${displayName}): ${e.message}`);
         }
 
-        // Telegram auto (best effort)
         try {
           const tgOn = String(getSetting("telegram_enabled", "0")).trim().toLowerCase();
           const enabled = (tgOn === "1" || tgOn === "true" || tgOn === "yes" || tgOn === "on");
@@ -225,8 +243,8 @@ async function scanOnce() {
         if (!isStable(xciPath, stabilitySec)) continue;
 
         const base = path.basename(xciPath, ".xci");
-        const folderName = base;     // on garde la convention table games
-        const displayName = base;    // affichage = nom sans extension
+        const folderName = base;
+        const displayName = base;
         const folderSizeBytes = getFileSizeBytes(xciPath);
         const platform = "Switch";
 
@@ -235,7 +253,6 @@ async function scanOnce() {
         if (res.created) {
           createdGames.push({ id: res.id, folderName, fullPath: xciPath });
 
-          // IGDB auto (best effort) (sur le nom sans extension)
           try {
             const r = await searchGameByName(displayName);
 
@@ -263,7 +280,6 @@ async function scanOnce() {
             errors.push(`IGDB error (${displayName}): ${e.message}`);
           }
 
-          // Telegram auto (best effort)
           try {
             const tgOn = String(getSetting("telegram_enabled", "0")).trim().toLowerCase();
             const enabled = (tgOn === "1" || tgOn === "true" || tgOn === "yes" || tgOn === "on");
@@ -287,7 +303,6 @@ async function scanOnce() {
     }
   }
 
-  // Archive automatique : éléments plus vus
   const gone = db.prepare(`
     SELECT id, display_name, full_path
     FROM games
@@ -298,7 +313,6 @@ async function scanOnce() {
     db.prepare("UPDATE games SET is_deleted=1 WHERE seen_in_last_scan=0").run();
   }
 
-  // stats scan
   db.prepare("INSERT OR REPLACE INTO settings (key,value) VALUES ('last_scan_at', datetime('now'))").run();
   db.prepare("INSERT OR REPLACE INTO settings (key,value) VALUES ('last_scan_new', ?)").run(String(createdGames.length));
   db.prepare("INSERT OR REPLACE INTO settings (key,value) VALUES ('last_scan_errors', ?)").run(String(errors.length));

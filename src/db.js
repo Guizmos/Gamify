@@ -68,8 +68,8 @@ function ensureColumns() {
 
   add("seen_in_last_scan", `ALTER TABLE games ADD COLUMN seen_in_last_scan INTEGER NOT NULL DEFAULT 1;`);
   add("is_deleted", `ALTER TABLE games ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0;`);
+  add("is_archived", `ALTER TABLE games ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0;`);
 
-  // ✅ NOUVEAU : taille du dossier
   add("folder_size_bytes", `ALTER TABLE games ADD COLUMN folder_size_bytes INTEGER;`);
 }
 
@@ -80,13 +80,12 @@ function ensureDefaultSettings() {
   upsert.run("scan_interval_sec", "300");
   upsert.run("scan_stability_sec", "60");
 
-  upsert.run("telegram_enabled", "0"); // ✅ on part direct sur 0/1
+  upsert.run("telegram_enabled", "0");
   upsert.run("telegram_bot_token", "");
   upsert.run("telegram_chat_id", "");
 }
 
 function normalizeTelegramEnabled() {
-  // ✅ convertit true/false/on/yes -> 1/0 si jamais tu avais déjà des valeurs
   try {
     const row = db.prepare("SELECT value FROM settings WHERE key='telegram_enabled'").get();
     if (!row) return;

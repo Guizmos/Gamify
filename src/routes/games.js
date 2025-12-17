@@ -24,8 +24,8 @@ router.get("/games", (req, res) => {
   const params = {};
 
   // filtre archive
-  if (archiveOnly) where.push("is_deleted = 1");
-  else where.push("is_deleted = 0");
+  if (archiveOnly) where.push("(is_deleted = 1 OR is_archived = 1)");
+  else where.push("(is_deleted = 0 AND is_archived = 0)");
 
   // autres filtres
   if (search) {
@@ -63,6 +63,7 @@ router.get("/games", (req, res) => {
       cover_path,
       igdb_cover_url,
       is_deleted,
+      is_archived,
       folder_size_bytes
     FROM games
     ${where.length ? "WHERE " + where.join(" AND ") : ""}
@@ -134,6 +135,28 @@ router.post("/games/:id/igdb-apply", requireAuth, requireAdmin, (req, res) => {
   );
 
   res.json({ ok:true });
+});
+
+/**
+ * Admin : archiver/désarchiver manuellement un jeu
+ * POST /api/games/:id/archive
+ * body optionnel: { archived: 0|1 } sinon toggle
+ */
+router.post("/games/:id/archive", requireAuth, requireAdmin, (req, res) => {
+  const db = getDb();
+  const id = Number(req.params.id);
+
+  const row = db.prepare(`SELECT id, is_archived FROM games WHERE id=?`).get(id);
+  if (!row) return res.status(404).json({ ok:false, error:"Jeu introuvable" });
+
+  const body = req.body || {};
+  const hasValue = Object.prototype.hasOwnProperty.call(body, "archived");
+
+  const next = hasValue ? (Number(body.archived) ? 1 : 0) : (row.is_archived ? 0 : 1);
+
+  db.prepare(`UPDATE games SET is_archived=? WHERE id=?`).run(next, id);
+
+  res.json({ ok:true, id, is_archived: next });
 });
 
 module.exports = router;
