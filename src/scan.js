@@ -173,7 +173,7 @@ async function scanOnce() {
       if (!isStable(gameDir, stabilitySec)) continue;
 
       const displayName = folderName;
-      const folderSizeBytes = null;
+      const folderSizeBytes = getDirSizeBytes(gameDir);
       const platform = "PC";
 
       const res = upsertGame({ folderName, displayName, fullPath: gameDir, folderSizeBytes, platform });

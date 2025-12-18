@@ -507,6 +507,7 @@ button.mini:hover .material-symbols-rounded{
   display:none;
   z-index: 50;
 }
+
 .modal.open{ display:block; }
 
 .modal__backdrop{
