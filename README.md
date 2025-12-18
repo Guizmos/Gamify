@@ -95,19 +95,19 @@ gamify:
 ```
 
 ## Démarrage
-bash
-Copier le code
-docker compose up -d
+- bash
+- Copier le code
+- docker compose up -d
 
 Puis accéder à l’interface :
-http://localhost:8080
+- http://localhost:8080
 
 ## ⚙️ Configuration
 
 La configuration se fait via :
 
-les variables d’environnement Docker
-l’interface web (paramètres)
+- les variables d’environnement Docker
+- l’interface web (paramètres)
 
 Aucun fichier .env n’est requis côté serveur.
 Un .env.example est fourni à titre indicatif dans le dépôt.
@@ -115,29 +115,31 @@ Un .env.example est fourni à titre indicatif dans le dépôt.
 ## 🔐 Comptes & rôles
 admin
 
-scan des dossiers
-gestion des utilisateurs
-paramètres
-notifications
+- scan des dossiers
+- gestion des utilisateurs
+- paramètres
+- notifications
+
 user
 
-consultation uniquement
+- consultation uniquement
 
 ## 📦 Données persistantes
 Toutes les données sont stockées dans le volume /data :
 
-base SQLite
-cache des pochettes IGDB
-paramètres
-historique des scans
+- base SQLite
+- cache des pochettes IGDB
+- paramètres
+- historique des scans
 
 Un simple backup de ce dossier suffit.
 
 ## 🛠️ Stack technique
-Node.js
-Express
-SQLite
-Docker
-IGDB API
-Telegram Bot API
-HTML / CSS / JavaScript (vanilla)
+
+- Node.js
+- Express
+- SQLite
+- Docker
+- IGDB API
+- Telegram Bot API
+- HTML / CSS / JavaScript (vanilla)
