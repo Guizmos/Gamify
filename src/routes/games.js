@@ -80,7 +80,7 @@ router.get("/games", (req, res) => {
 });
 
 const { requireAuth, requireAdmin } = require("../auth");
-const { searchGamesByName } = require("../igdb");
+const { searchGamesByName, getGameDetailsById } = require("../igdb");
 
 /**
  * Admin : chercher plusieurs résultats IGDB pour un jeu
@@ -135,6 +135,42 @@ router.post("/games/:id/igdb-apply", requireAuth, requireAdmin, (req, res) => {
   );
 
   res.json({ ok:true });
+});
+
+/**
+ * User/Admin : récupérer les détails IGDB d’un jeu lié
+ * GET /api/games/:id/igdb-details
+ */
+router.get("/games/:id/igdb-details", requireAuth, async (req, res) => {
+  const db = getDb();
+  const id = Number(req.params.id);
+
+  const row = db.prepare(`
+    SELECT id, igdb_id, igdb_slug, igdb_url, igdb_cover_url
+    FROM games
+    WHERE id=?
+  `).get(id);
+
+  if (!row) return res.status(404).json({ ok:false, error:"Jeu introuvable" });
+  if (!row.igdb_id) return res.json({ ok:false, error:"NO_IGDB_ID" });
+
+  try {
+    const details = await getGameDetailsById(row.igdb_id);
+    if (!details) return res.json({ ok:false, error:"IGDB_NOT_FOUND" });
+
+    // URL IGDB si manquante
+    const igdb_url = row.igdb_url || (details.slug ? `https://www.igdb.com/games/${details.slug}` : null);
+
+    res.json({
+      ok: true,
+      igdb: {
+        ...details,
+        igdb_url
+      }
+    });
+  } catch (e) {
+    res.status(500).json({ ok:false, error: e.message });
+  }
 });
 
 /**

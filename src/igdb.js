@@ -143,4 +143,53 @@ async function searchGamesByName(name, limit = 8) {
   return { query: q, hits };
 }
 
-module.exports = { searchGameByName, searchGamesByName };
+function imageUrlFromId(imageId, size = "t_screenshot_big") {
+  return imageId ? `https://images.igdb.com/igdb/image/upload/${size}/${imageId}.jpg` : null;
+}
+
+async function getGameDetailsById(igdbId) {
+  const id = Number(igdbId);
+  if (!id) return null;
+
+  const body = `
+    fields
+      id,name,slug,summary,first_release_date,
+      cover.image_id,
+      genres.name,
+      platforms.name,
+      involved_companies.company.name,
+      aggregated_rating,rating,
+      screenshots.image_id;
+    where id = ${id};
+    limit 1;
+  `;
+
+  const results = await igdbPost("games", body);
+  if (!Array.isArray(results) || results.length === 0) return null;
+
+  const g = results[0];
+
+  const coverImageId = g?.cover?.image_id || null;
+
+  return {
+    igdb_id: g.id,
+    name: g.name || null,
+    slug: g.slug || null,
+    summary: g.summary || null,
+    first_release_date: g.first_release_date || null,
+    cover_url: coverUrlFromImageId(coverImageId),
+    genres: (g.genres || []).map(x => x?.name).filter(Boolean),
+    platforms: (g.platforms || []).map(x => x?.name).filter(Boolean),
+    companies: (g.involved_companies || [])
+      .map(x => x?.company?.name)
+      .filter(Boolean),
+    rating: (typeof g.aggregated_rating === "number") ? g.aggregated_rating
+      : (typeof g.rating === "number" ? g.rating : null),
+    screenshots: (g.screenshots || [])
+      .map(s => imageUrlFromId(s?.image_id, "t_screenshot_big"))
+      .filter(Boolean)
+      .slice(0, 10),
+  };
+}
+
+module.exports = { searchGameByName, searchGamesByName, getGameDetailsById };

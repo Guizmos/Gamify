@@ -104,6 +104,7 @@ input{
 .cover{
   height: var(--cover-h);
   flex-shrink: 0;
+  cursor: pointer;
   background:
     linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,.35)),
     rgba(255,255,255,.05);
@@ -966,6 +967,153 @@ body.modal-open{
   min-height: 0;
 }
 
+/* =========================
+   GAME DETAILS MODAL
+   ========================= */
+
+.game-modal .modal__panel{
+  width: min(980px, calc(100vw - 30px));
+}
+
+.game-modal__content{
+  display:grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  align-items:start;
+}
+
+.game-modal__cover{
+  /* conteneur = juste un bloc qui limite la taille, sans forcer de hauteur */
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+
+  padding: 0;
+  height: auto;
+  max-height: none;
+
+  border: 0;
+  background: transparent;
+
+  /* important: ne pas couper l’image */
+  overflow: visible;
+}
+
+.game-modal__cover img{
+  /* taille “propre” du poster */
+  width: 100%;
+  max-width: 300px;      /* <-- ajuste (280/300/320) */
+  height: auto;
+  max-height: 520px;     /* <-- évite les posters énormes */
+
+  /* NO CROP */
+  object-fit: contain !important;
+
+  display:block;
+
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+}
+
+
+.game-modal__info{
+  display:flex;
+  flex-direction:column;
+  gap: 12px;
+}
+
+.game-modal__name{
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.game-modal__badges{
+  display:flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.game-modal__grid{
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+}
+
+.game-row{
+  display:grid;
+  grid-template-columns: 120px 1fr;
+  gap: 12px;
+  align-items:center;
+
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+
+  min-width: 0;
+}
+
+.game-key{
+  color: var(--muted);
+  font-size: 13px;
+  min-width: 0;
+}
+
+.game-val{
+  font-size: 13px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game-val--wrap{
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+}
+
+
+.game-val{
+  font-size: 13px;
+  text-align:right;
+  overflow:hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game-modal__actions{
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+a.link{
+  color: inherit;
+  opacity: .9;
+  text-decoration: underline;
+}
+
+.game-row--summary{
+  align-items: start;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.game-row--summary .game-key{
+  padding-top: 2px;
+}
+
+.game-row--summary .game-val{
+  line-height: 1.45;
+}
+
+.modal__body{ overflow-x: hidden; }      /* pas de scroll horizontal dans le body */
+.game-modal__content{ min-width: 0; }    /* autorise la colonne droite à shrink */
+.game-modal__info{ min-width: 0; } 
+
 @media (max-width: 600px){
   .meta{
     padding: 10px;
@@ -975,6 +1123,19 @@ body.modal-open{
   .badge{
     font-size: 11px;
     padding: 3px 6px;
+  }
+}
+
+@media (max-width: 780px){
+  .game-modal__content{
+    grid-template-columns: 1fr;
+  }
+  .game-modal__cover{
+    min-height: 320px;
+  }
+  .game-val{
+    white-space: normal;
+    text-align:left;
   }
 }
 

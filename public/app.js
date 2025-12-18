@@ -200,6 +200,228 @@ function ensurePosterModal() {
   return modal;
 }
 
+/* ------------------------------ GAME DETAILS MODAL ------------------------------ */
+
+let gamesById = new Map();
+
+function ensureGameModal() {
+  let modal = document.getElementById("game-modal");
+  if (modal) return modal;
+
+  modal = document.createElement("div");
+  modal.id = "game-modal";
+  modal.className = "modal game-modal";
+  modal.innerHTML = `
+    <div class="modal__backdrop" data-close></div>
+
+    <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="game-modal-title">
+      <div class="modal__head">
+        <div>
+          <div class="modal__title" id="game-modal-title">Détails du jeu</div>
+          <div class="modal__sub muted" id="game-modal-sub"></div>
+        </div>
+        <button class="btn btn-ghost icon-only" type="button" data-close title="Fermer">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+
+      <div class="modal__body">
+        <div class="game-modal__content">
+          <div class="game-modal__cover" id="game-modal-cover"></div>
+
+          <div class="game-modal__info">
+            <div class="game-modal__name" id="game-modal-name"></div>
+
+            <div class="game-modal__badges" id="game-modal-badges"></div>
+
+            <div class="game-modal__grid" id="game-modal-grid"></div>
+
+            <div class="game-modal__actions" id="game-modal-actions"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal__foot">
+        <button class="btn btn-ghost" type="button" data-close>Fermer</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  modal.addEventListener("click", (e) => {
+    if (e.target.matches("[data-close]")) {
+      modal.classList.remove("open");
+      document.body.classList.remove("modal-open");
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && modal.classList.contains("open")) {
+      modal.classList.remove("open");
+      document.body.classList.remove("modal-open");
+    }
+  });
+
+  return modal;
+}
+
+function openGameModal(game) {
+  const modal = ensureGameModal();
+
+  const sub = modal.querySelector("#game-modal-sub");
+  const cover = modal.querySelector("#game-modal-cover");
+  const name = modal.querySelector("#game-modal-name");
+  const badges = modal.querySelector("#game-modal-badges");
+  const grid = modal.querySelector("#game-modal-grid");
+  const actions = modal.querySelector("#game-modal-actions");
+
+  const title = game.display_name || "Jeu";
+  const platform = platformLabel(game.platform);
+  const sizeGb = formatGB(game.folder_size_bytes);
+
+  sub.textContent = platform + (sizeGb ? ` • ${sizeGb} Go` : "");
+  name.textContent = title;
+
+  cover.innerHTML = game.igdb_cover_url
+    ? `<img
+        src="${esc(game.igdb_cover_url)}"
+        alt=""
+        style="
+          width:100%;
+          height:100%;
+          display:block;
+          object-fit: cover;        /* image pleine */
+          object-position: center;  /* centrée */
+        "
+      >`
+    : `<div class="cover-placeholder">no cover</div>`;
+
+
+  const archivedBadge = (game.is_deleted || game.is_archived) ? badge("Archivé", "warn") : "";
+  const sizeBadge = sizeGb ? badge(`${sizeGb} Go`) : "";
+  badges.innerHTML = `
+    ${badge(platform)}
+    ${sizeBadge}
+    ${archivedBadge}
+    ${isAdmin ? badge("Notif: " + (game.notif_status || "n/a"), (game.notif_status === "sent" ? "ok" : "warn")) : ""}
+    ${isAdmin ? badge("IGDB: " + (game.igdb_status || "n/a"), (game.igdb_status === "matched" ? "ok" : "warn")) : ""}
+  `;
+
+  const rows = [];
+  rows.push(["Nom", esc(game.display_name || "")]);
+  rows.push(["Plateforme", esc(platform)]);
+  if (sizeGb) rows.push(["Taille", esc(`${sizeGb} Go`)]);
+  if (game.igdb_url) rows.push(["IGDB", `<a class="link" href="${esc(game.igdb_url)}" target="_blank" rel="noreferrer">Ouvrir</a>`]);
+
+  grid.innerHTML = rows.map(([k, v]) => `
+    <div class="game-row">
+      <div class="game-key">${k}</div>
+      <div class="game-val">${v}</div>
+    </div>
+  `).join("");
+
+
+  modal.dataset.igdbLoaded = "0";
+  actions.innerHTML = ""; 
+  modal.classList.add("open");
+  document.body.classList.add("modal-open");
+  enrichWithIgdb(game.id);
+}
+
+async function enrichWithIgdb(gameId) {
+  const modal = document.getElementById("game-modal");
+  if (!modal || !modal.classList.contains("open")) return;
+
+  if (modal.dataset.igdbLoaded === "1") return;
+  modal.dataset.igdbLoaded = "1";
+
+  const grid = modal.querySelector("#game-modal-grid");
+  const actions = modal.querySelector("#game-modal-actions");
+
+  const loader = document.createElement("div");
+  loader.className = "muted";
+  loader.style.marginTop = "10px";
+  loader.textContent = "Récupération des infos IGDB…";
+  actions.appendChild(loader);
+
+  try {
+    const res = await fetch(`/api/games/${gameId}/igdb-details`);
+    const data = await res.json();
+
+    loader.remove();
+
+    if (!data.ok || !data.igdb) return;
+
+    const ig = data.igdb;
+
+    const extra = [];
+    if (ig.summary) extra.push(["Résumé", esc(ig.summary)]);
+    if (ig.first_release_date) {
+      const d = new Date(Number(ig.first_release_date) * 1000);
+      if (!Number.isNaN(d.getTime())) extra.push(["Sortie", esc(d.toLocaleDateString("fr-FR"))]);
+    }
+    if (ig.genres?.length) extra.push(["Genres", esc(ig.genres.join(", "))]);
+    if (ig.platforms?.length) extra.push(["Plateformes IGDB", esc(ig.platforms.join(", "))]);
+    if (ig.companies?.length) extra.push(["Studios", esc(ig.companies.join(", "))]);
+    if (typeof ig.rating === "number") extra.push(["Note", esc(`${ig.rating.toFixed(0)}%`)]);
+
+    if (extra.length) {
+      grid.insertAdjacentHTML("beforeend", extra.map(([k, v]) => {
+        const isSummary = (k === "Résumé");
+        return `
+          <div class="game-row ${isSummary ? "game-row--summary" : ""}">
+            <div class="game-key">${k}</div>
+            <div class="game-val ${isSummary ? "game-val--wrap" : ""}"
+                style="${isSummary ? "white-space:normal; overflow:visible; text-overflow:unset; text-align:left; line-height:1.45;" : ""}">
+              ${v}
+            </div>
+          </div>
+        `;
+      }).join(""));
+    }
+
+    if (ig.screenshots?.length) {
+      grid.insertAdjacentHTML("beforeend", `
+        <div class="game-shots" style="
+          margin-top: 10px;
+          display: grid;
+          gap: 10px;
+          justify-items: center;
+        ">
+          ${ig.screenshots.map(u => `
+            <img
+              src="${esc(u)}"
+              alt=""
+              loading="lazy"
+              style="
+                max-width: 100%;
+                height: auto;
+                display: block;
+                border-radius: 14px;
+                border: 1px solid rgba(255,255,255,0.10);
+              "
+            >
+          `).join("")}
+        </div>
+      `);
+    }
+
+
+    if (ig.igdb_url) {
+      actions.insertAdjacentHTML("afterbegin", `
+        <a class="btn btn-primary" href="${esc(ig.igdb_url)}" target="_blank" rel="noreferrer">
+          <span class="material-symbols-rounded">open_in_new</span>
+          <span class="btn-text">IGDB</span>
+        </a>
+      `);
+    }
+
+  } catch (e) {
+    loader.remove();
+    console.error("IGDB enrich error:", e);
+  }
+}
+
 async function openPosterPicker(gameId, currentName) {
   const modal = ensurePosterModal();
   const qInput = modal.querySelector("#poster-q");
@@ -313,7 +535,7 @@ function render(games){
 
     return `
       <article class="card">
-        <div class="cover">
+        <div class="cover" data-open-game="${g.id}" title="Voir les détails">
           ${coverHtml}
 
           ${isAdmin ? `
@@ -410,6 +632,22 @@ function render(games){
   }
 }
 
+if (gridEl) {
+  gridEl.addEventListener("click", (e) => {
+    if (e.target.closest(".card-menu")) return;
+    if (e.target.closest("button")) return;
+
+    const cover = e.target.closest("[data-open-game]");
+    if (!cover) return;
+
+    const id = Number(cover.dataset.openGame);
+    const game = gamesById.get(id);
+    if (!game) return;
+
+    openGameModal(game);
+  });
+}
+
 async function notifyGame(id){
   try{
     const res = await fetch(`/api/games/${id}/notify`, { method:"POST" });
@@ -463,6 +701,7 @@ async function loadGames(){
     ? `${data.count} jeux archivés`
     : `${data.count} jeux présents`;
 
+  gamesById = new Map((data.games || []).map(g => [Number(g.id), g]));
   render(data.games);
 }
 
