@@ -92,6 +92,7 @@ gamify:
 
   volumes:
     - ./data:/data
+```
 
 ## Démarrage
 bash
