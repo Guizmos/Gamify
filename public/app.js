@@ -165,6 +165,7 @@ function ensurePosterModal() {
   modal.addEventListener("click", (e) => {
     if (e.target.matches("[data-close]")) {
       modal.classList.remove("open");
+      document.body.classList.remove("modal-open");
     }
   });
 
@@ -184,6 +185,7 @@ async function openPosterPicker(gameId, currentName) {
 
   modal.dataset.gameId = String(gameId);
   modal.classList.add("open");
+  document.body.classList.add("modal-open");
 
   async function runSearch() {
     const q = qInput.value.trim();
@@ -252,6 +254,7 @@ async function openPosterPicker(gameId, currentName) {
         }
 
         modal.classList.remove("open");
+        document.body.classList.remove("modal-open");
         statusEl.textContent = "Pochette mise à jour ✅";
         await loadGames();
       });
@@ -261,7 +264,6 @@ async function openPosterPicker(gameId, currentName) {
   goBtn.onclick = runSearch;
   qInput.onkeydown = (e) => { if (e.key === "Enter") runSearch(); };
 
-  // recherche auto à l’ouverture
   runSearch();
 }
 
