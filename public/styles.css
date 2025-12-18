@@ -6,6 +6,8 @@
   --border:rgba(148,163,184,.16);
   --radius:22px;
   --shadow:0 18px 45px rgba(15,23,42,.7);
+  --card-min: 220px;
+  --cover-h: 310px; 
 }
 
 *{box-sizing:border-box}
@@ -58,8 +60,9 @@ input{
 
 .grid{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-min), 1fr));
   gap:14px;
+  align-items: start;
 }
 
 .card{
@@ -68,7 +71,6 @@ input{
     rgba(255,255,255,0.12),
     rgba(255,255,255,0.06)
   );
-
   border: 1px solid rgba(255,255,255,0.20);
   border-radius: var(--radius);
   overflow:hidden;
@@ -81,7 +83,6 @@ input{
 
   display:flex;
   flex-direction:column;
-  min-height:280px;
 
   transition:
     transform .25s ease,
@@ -101,7 +102,8 @@ input{
 }
 
 .cover{
-  height:310px;
+  height: var(--cover-h);
+  flex-shrink: 0;
   background:
     linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,.35)),
     rgba(255,255,255,.05);
@@ -109,14 +111,31 @@ input{
 
 .meta{
   padding:14px;
-  background: linear-gradient(
-    180deg,
-    rgba(0,0,0,0),
-    rgba(0,0,0,.35)
-  );
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+
+  flex-shrink: 0;
 }
 
-.title{font-weight:700;margin:0 0 8px;font-size:14px;line-height:1.2}
+.title{
+  font-weight:700;
+  font-size:14px;
+  line-height:1.2;
+
+  min-height: calc(2 * 1.2em);
+
+  margin:0 0 6px;
+
+  display:-webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+
+  line-clamp: 2;
+
+  overflow:hidden;
+}
+
 .row{display:flex;gap:8px;flex-wrap:wrap}
 .badge{
   font-size:12px;
@@ -190,7 +209,7 @@ button.mini:hover .material-symbols-rounded{
   align-items:center;
   gap:10px;
   padding: 0 12px;
-  border-radius: 14px;
+  border-radius: 20px;
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.10);
 }
@@ -455,6 +474,31 @@ button.mini:hover .material-symbols-rounded{
 .menu-item:hover{
   background: rgba(56,189,248,0.14);
   border: 1px solid rgba(56,189,248,0.18);
+}
+
+.card-size{
+  height: 40px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding: 0 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.06);
+}
+
+.card-size .material-symbols-rounded{
+  font-size: 20px;
+  opacity: .9;
+}
+
+.card-size input[type="range"]{
+  width: 140px;
+  min-width: 140px;
+  height: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .modal{
@@ -919,6 +963,18 @@ body.modal-open{
   overflow: auto;
   flex: 1;
   min-height: 0;
+}
+
+@media (max-width: 600px){
+  .meta{
+    padding: 10px;
+    gap: 6px;
+  }
+
+  .badge{
+    font-size: 11px;
+    padding: 3px 6px;
+  }
 }
 
 @media (max-width: 820px){
