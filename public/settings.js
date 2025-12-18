@@ -9,7 +9,6 @@ const save = document.getElementById("tg-save");
 const test = document.getElementById("tg-test");
 const tgCard = document.getElementById("tg-card");
 
-// --- NEW: Telegram message card ---
 const tgMsgCard = document.getElementById("tg-msg-card");
 const tgTemplate = document.getElementById("tg-template");
 const tgTplSave = document.getElementById("tg-template-save");
@@ -18,6 +17,31 @@ const tgTplMsg = document.getElementById("tg-template-msg");
 
 const DEFAULT_TG_TEMPLATE =
   "🎮 Nouveau jeu : {name}\n🕹 Plateforme : {platform}\n📦 Taille : {size_gb} Go\n📁 Dossier : {folder}";
+
+function flashBtn(btn, text, ms = 3000, keepIcon = true) {
+  if (!btn) return;
+
+  if (!btn.dataset.originalHtml) btn.dataset.originalHtml = btn.innerHTML;
+
+  const originalHtml = btn.dataset.originalHtml;
+  const wasDisabled = btn.disabled;
+
+  btn.disabled = true;
+
+  if (keepIcon) {
+    const icon = btn.querySelector(".material-symbols-rounded");
+    const iconHtml = icon ? icon.outerHTML : "";
+    btn.innerHTML = `${iconHtml}<span class="btn-text">${text}</span>`;
+  } else {
+    btn.textContent = text;
+  }
+
+  window.setTimeout(() => {
+    btn.innerHTML = originalHtml;
+    btn.disabled = wasDisabled;
+  }, ms);
+}
+
 
 function setTplMsg(t) {
   if (tgTplMsg) tgTplMsg.textContent = t || "";
@@ -123,48 +147,60 @@ if (enabled) {
 
 if (save) {
   save.addEventListener("click", async () => {
-    if (msg) msg.textContent = "Enregistrement…";
+    flashBtn(save, "Enregistrement…", 3000);
 
-    const res = await fetch("/api/admin/telegram", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        telegram_enabled: !!enabled?.checked,
-        telegram_bot_token: (token?.value || "").trim(),
-        telegram_chat_id: (chat?.value || "").trim()
-      })
-    });
+    try {
+      const res = await fetch("/api/admin/telegram", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          telegram_enabled: !!enabled?.checked,
+          telegram_bot_token: (token?.value || "").trim(),
+          telegram_chat_id: (chat?.value || "").trim()
+        })
+      });
 
-    const data = await res.json();
-    if (msg) msg.textContent = data.ok ? "OK ✅" : ("KO: " + (data.error || "Erreur"));
+      const data = await res.json().catch(() => ({}));
+      flashBtn(save, data.ok ? "Enregistré ✅" : "Erreur ❌", 3000);
+      if (!data.ok && msg) msg.textContent = "KO: " + (data.error || "Erreur");
+    } catch (e) {
+      console.error(e);
+      flashBtn(save, "Erreur réseau ❌", 3000);
+      if (msg) msg.textContent = "KO: erreur réseau";
+    }
   });
 }
 
 if (test) {
   test.addEventListener("click", async () => {
-    // si désactivé, on évite un test inutile
     if (!enabled?.checked) {
-      if (msg) msg.textContent = "Telegram est désactivé.";
+      flashBtn(test, "Telegram OFF", 3000);
       return;
     }
 
-    if (msg) msg.textContent = "Test…";
+    flashBtn(test, "Test…", 3000);
 
     const g = await fetch("/api/games?limit=1").then(r => r.json());
     if (!g.ok || !g.games?.length) {
-      if (msg) msg.textContent = "Aucun jeu pour tester.";
+      flashBtn(test, "Aucun jeu ❌", 3000);
       return;
     }
 
     const id = g.games[0].id;
-    const res = await fetch(`/api/games/${id}/notify`, { method: "POST" });
-    const data = await res.json();
 
-    if (msg) msg.textContent = data.ok ? "Test envoyé ✅" : ("Test KO: " + (data.error || "Erreur"));
+    try {
+      const res = await fetch(`/api/games/${id}/notify`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      flashBtn(test, data.ok ? "Test envoyé ✅" : "Test KO ❌", 3000);
+      if (!data.ok && msg) msg.textContent = "Test KO: " + (data.error || "Erreur");
+    } catch (e) {
+      console.error(e);
+      flashBtn(test, "Erreur réseau ❌", 3000);
+      if (msg) msg.textContent = "Test KO: erreur réseau";
+    }
   });
 }
 
-// --- NEW: save / reset telegram template ---
 if (tgTplSave) {
   tgTplSave.addEventListener("click", async () => {
     if (!enabled?.checked) {
@@ -172,7 +208,7 @@ if (tgTplSave) {
       return;
     }
 
-    setTplMsg("Enregistrement…");
+    flashBtn(tgTplSave, "Enregistrement…", 3000, true);
 
     const template = String(tgTemplate?.value || "").trim() || DEFAULT_TG_TEMPLATE;
 
@@ -186,9 +222,11 @@ if (tgTplSave) {
       });
 
       const data = await res.json().catch(() => ({}));
-      setTplMsg(data.ok ? "OK ✅" : ("KO: " + (data.error || "Erreur")));
+      flashBtn(tgTplSave, data.ok ? "Enregistré ✅" : "Erreur ❌", 3000, true);
+      setTplMsg(data.ok ? "" : ("KO: " + (data.error || "Erreur")));
     } catch (e) {
       console.error(e);
+      flashBtn(tgTplSave, "Erreur réseau ❌", 3000, true);
       setTplMsg("KO: erreur réseau");
     }
   });
@@ -197,20 +235,17 @@ if (tgTplSave) {
 if (tgTplReset) {
   tgTplReset.addEventListener("click", () => {
     if (tgTemplate) tgTemplate.value = DEFAULT_TG_TEMPLATE;
-    setTplMsg("Réinitialisé (pense à enregistrer) 😉");
+    flashBtn(tgTplReset, "Réinitialisé ✅", 3000, true);
+    setTplMsg("Pense à enregistrer 😉");
   });
 }
 
-// --- Users admin UI ---
 const usersMsg = document.getElementById("users-msg");
-
 const uUsername = document.getElementById("u-username");
 const uPassword = document.getElementById("u-password");
 const uRole = document.getElementById("u-role");
 const uAdd = document.getElementById("u-add");
 const uListBtn = document.getElementById("u-list");
-
-// modal
 const usersModal = document.getElementById("users-modal");
 const usersList = document.getElementById("users-list");
 
@@ -284,7 +319,6 @@ async function loadUsersIntoModal(){
     </div>
   `).join("");
 
-  // handlers
   usersList.querySelectorAll(".u-savepass").forEach(btn => {
     btn.addEventListener("click", async () => {
       const row = btn.closest(".user-row");
@@ -305,8 +339,10 @@ async function loadUsersIntoModal(){
           body: JSON.stringify({ password: pw })
         });
         input.value = "";
+        flashBtn(btn, "✅", 1500, false);
         setUsersMsg("Mot de passe modifié ✅");
       }catch(e){
+        flashBtn(btn, "❌", 2000, false);
         setUsersMsg("KO: " + e.message);
       }
     });
@@ -323,9 +359,11 @@ async function loadUsersIntoModal(){
       try{
         setUsersMsg("Suppression…");
         await apiJson(`/api/admin/users/${id}`, { method:"DELETE" });
+        flashBtn(btn, "✅", 1500, false);
         setUsersMsg("Supprimé ✅");
         await loadUsersIntoModal();
       }catch(e){
+        flashBtn(btn, "❌", 2000, false);
         setUsersMsg("KO: " + e.message);
       }
     });
@@ -335,9 +373,12 @@ async function loadUsersIntoModal(){
 if (uListBtn) {
   uListBtn.addEventListener("click", async () => {
     try{
+      flashBtn(uListBtn, "Chargement…", 2000, true);
       openUsersModal();
       await loadUsersIntoModal();
+      flashBtn(uListBtn, "OK ✅", 1500, true);
     }catch(e){
+      flashBtn(uListBtn, "Erreur ❌", 3000, true);
       setUsersMsg("KO: " + e.message);
     }
   });
@@ -353,7 +394,8 @@ if (uAdd) {
     if (!password || password.length < 6) return setUsersMsg("Mot de passe trop court (min 6).");
 
     try{
-      setUsersMsg("Création…");
+      flashBtn(uAdd, "Création…", 2000, true);
+      setUsersMsg("");
       await apiJson("/api/admin/users", {
         method:"POST",
         headers:{ "Content-Type":"application/json" },
@@ -364,12 +406,13 @@ if (uAdd) {
       uPassword.value = "";
       uRole.value = "user";
 
+      flashBtn(uAdd, "Ajouté ✅", 3000, true);
       setUsersMsg("User ajouté ✅");
-      // si modal ouvert -> refresh
       if (usersModal?.classList.contains("is-open")) {
         await loadUsersIntoModal();
       }
     }catch(e){
+      flashBtn(uAdd, "Erreur ❌", 3000, true);
       setUsersMsg("KO: " + e.message);
     }
   });

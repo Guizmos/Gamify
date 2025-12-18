@@ -17,14 +17,15 @@ const notifyRoutes = require("./routes/notify");
 const adminTelegramRoutes = require("./routes/admin_telegram");
 const adminUsersRoutes = require("./routes/admin_users");
 
+const pkg = require("../package.json");
+const APP_VERSION = pkg.version;
+
 const app = express();
 const db = getDb();
 
-// ✅ Middlewares AVANT les routes
 app.use(cookieParser());
 app.use(express.json({ limit: "5mb" }));
 
-// ✅ Routes API
 app.use("/api", authRoutes);
 app.use("/api", adminTelegramRoutes);
 app.use("/api", adminUsersRoutes);
@@ -36,7 +37,10 @@ app.use("/api", scanRoutes);
 app.use("/api", settingsRoutes);
 app.use("/api", gamesRoutes);
 
-// ✅ Static en dernier
+app.get("/api/version", (req, res) => {
+  res.json({ ok: true, version: APP_VERSION });
+});
+
 app.use(express.static(path.join(__dirname, "..", "public")));
 
 function getSetting(key, fallback) {
@@ -44,7 +48,6 @@ function getSetting(key, fallback) {
   return row ? row.value : fallback;
 }
 
-// Auto scan
 function scheduleAutoScan() {
   const enabled = (getSetting("scan_enabled", "true") === "true");
   const intervalSec = Number(getSetting("scan_interval_sec", "300"));
@@ -66,7 +69,6 @@ const server = app.listen(PORT, () => {
   scheduleAutoScan();
 });
 
-// Bonus: message clair si port déjà pris
 server.on("error", (err) => {
   if (err.code === "EADDRINUSE") {
     logger.error("[APP]", `Port ${PORT} déjà utilisé`);

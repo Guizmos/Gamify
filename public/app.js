@@ -524,4 +524,17 @@ updateSortBtn();
 ensureLoggedIn().then(u => {
   if (!u) return;
   loadGames();
+
+(async () => {
+  const el = document.getElementById("app-version");
+  if (!el) return;
+
+  try {
+    const r = await fetch("/api/version");
+    const data = await r.json();
+    if (data?.ok && data.version) el.textContent = `v${data.version}`;
+  } catch {
+  }
+})();
+
 });

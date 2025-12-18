@@ -13,7 +13,7 @@
 <body>
   <div class="app">
 
-    <!-- Topbar cohérente -->
+    <!-- Topbar -->
     <header class="topbar">
       <div class="topbar-left">
         <h1 class="app-title">Paramètres</h1>
@@ -31,7 +31,7 @@
 
     <main class="settings-grid">
 
-      <!-- TELEGRAM -->
+      <!-- ================= TELEGRAM ================= -->
       <section id="tg-card" class="card settings-card">
         <div class="settings-card__head">
           <div>
@@ -55,14 +55,15 @@
             Chat ID
             <input id="tg-chat" type="text" placeholder="-1001234567890" />
           </label>
+        </div>
 
-          <div class="settings-actions">
-            <button id="tg-test" class="btn btn-ghost" type="button">Tester</button>
-            <button id="tg-save" class="btn btn-primary" type="button">Enregistrer</button>
-          </div>
+        <div class="settings-actions">
+          <button id="tg-test" class="btn btn-ghost" type="button">Tester</button>
+          <button id="tg-save" class="btn btn-primary" type="button">Enregistrer</button>
         </div>
       </section>
-      
+
+      <!-- ================= MESSAGE TELEGRAM ================= -->
       <section id="tg-msg-card" class="card settings-card" style="display:none;">
         <div class="settings-card__head">
           <div>
@@ -74,22 +75,28 @@
         <div class="settings-card__body">
           <label class="settings-label">
             Modèle du message
-            <textarea id="tg-template" rows="6" placeholder="Ex: 🎮 Nouveau jeu : {name}&#10;Plateforme : {platform}&#10;Taille : {size_gb} Go"></textarea>
+            <textarea id="tg-template" rows="6"
+              placeholder="Ex: 🎮 Nouveau jeu : {name}&#10;Plateforme : {platform}&#10;Taille : {size_gb} Go"></textarea>
+
             <div class="muted" style="margin-top:6px;">
-              Variables: <code>{name}</code> <code>{platform}</code> <code>{size_gb}</code> <code>{folder}</code>
+              Variables:
+              <code>{name}</code>
+              <code>{platform}</code>
+              <code>{size_gb}</code>
+              <code>{folder}</code>
             </div>
           </label>
 
-          <div class="settings-actions">
-            <button id="tg-template-reset" class="btn btn-ghost" type="button">Réinitialiser</button>
-            <button id="tg-template-save" class="btn btn-primary" type="button">Enregistrer</button>
-          </div>
-
           <p id="tg-template-msg" class="muted" style="margin:0;"></p>
+        </div>
+
+        <div class="settings-actions">
+          <button id="tg-template-reset" class="btn btn-ghost" type="button">Réinitialiser</button>
+          <button id="tg-template-save" class="btn btn-primary" type="button">Enregistrer</button>
         </div>
       </section>
 
-      <!-- USERS -->
+      <!-- ================= USERS ================= -->
       <section id="users-card" class="card settings-card">
         <div class="settings-card__head">
           <div>
@@ -99,8 +106,6 @@
         </div>
 
         <div class="settings-card__body" style="gap:12px;">
-
-          <!-- Ajouter -->
           <div class="users-add">
             <label class="settings-label">
               Username
@@ -121,20 +126,19 @@
             </label>
           </div>
 
-          <!-- Boutons EN DESSOUS -->
-          <div class="settings-actions">
-            <button id="u-list" class="btn btn-ghost" type="button">
-              <span class="material-symbols-rounded">group</span>
-              <span class="btn-text">Liste</span>
-            </button>
-
-            <button id="u-add" class="btn btn-primary" type="button">
-              <span class="material-symbols-rounded">person_add</span>
-              <span class="btn-text">Ajouter</span>
-            </button>
-          </div>
-
           <p id="users-msg" class="muted" style="margin:0;"></p>
+        </div>
+
+        <div class="settings-actions">
+          <button id="u-list" class="btn btn-ghost" type="button">
+            <span class="material-symbols-rounded">group</span>
+            <span class="btn-text">Liste</span>
+          </button>
+
+          <button id="u-add" class="btn btn-primary" type="button">
+            <span class="material-symbols-rounded">person_add</span>
+            <span class="btn-text">Ajouter</span>
+          </button>
         </div>
       </section>
 
@@ -143,7 +147,7 @@
 
   </div>
 
-  <!-- Modal users -->
+  <!-- ================= USERS MODAL ================= -->
   <div id="users-modal" class="modal" aria-hidden="true">
     <div class="modal__backdrop" data-close="1"></div>
 
