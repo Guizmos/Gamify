@@ -67,31 +67,32 @@ Idéal pour :
 version: "3.8"
 
 services:
-gamify:
-  image: guizmos/gamify:latest
-  container_name: gamify
-  restart: unless-stopped
+  gamify:
+    image: guizmos/gamify:latest
+    container_name: GAMIFY
+    environment:
+      - GAMES_ROOT=/games
+      - DATA_DIR=/data
 
-  ports:
-    - "8080:8080"
+      - DB_PATH=/data/gamify.sqlite
 
-  environment:
-    PORT: "8080"
+      - JWT_SECRET=${JWT_SECRET:-change_me_dev_only}
 
-    # Sécurité
-    JWT_SECRET: "change_me_very_long_random"
+      - ADMIN_BOOTSTRAP_USER=${ADMIN_BOOTSTRAP_USER:-admin}
+      - ADMIN_BOOTSTRAP_PASS=${ADMIN_BOOTSTRAP_PASS:-changeme}
 
-    # IGDB (obligatoire pour pochettes / métadonnées)
-    IGDB_CLIENT_ID: "your_igdb_client_id"
-    IGDB_CLIENT_SECRET: "your_igdb_client_secret"
+      - IGDB_CLIENT_ID=IGDBCLIENTID
+      - IGDB_CLIENT_SECRET=IGDBCLIENTSECRET
 
-    # Telegram (optionnel)
-    TELEGRAM_ENABLED: "true"
-    TELEGRAM_BOT_TOKEN: "123456:ABCDEF"
-    TELEGRAM_CHAT_ID: "-1001234567890"
+    ports:
+      - "7071:8080"
 
-  volumes:
-    - ./data:/data
+    volumes:
+      - /volume1/Docker/Gamify/data:/data
+      - /volume1/Jeux:/games:ro
+      
+    restart: unless-stopped
+
 ```
 
 ## Démarrage
