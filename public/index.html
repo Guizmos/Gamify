@@ -18,7 +18,6 @@
       <div class="topbar-center">
         <div class="topbar-filters">
 
-          <!-- Filtre plateforme (menu style ⋮) -->
           <div class="platform-menu card-menu" id="platform-menu">
             <button class="menu-btn" type="button" id="platform-menu-btn" title="Filtrer par plateforme">
               <span class="material-symbols-rounded">filter_list</span>
@@ -40,28 +39,30 @@
             </div>
           </div>
 
-          <!-- Search -->
+          <button id="btn-sort" class="btn btn-ghost icon-only" type="button" title="Tri alphabétique">
+            <span class="material-symbols-rounded" aria-hidden="true">sort_by_alpha</span>
+          </button>
+
           <div class="search">
             <span class="material-symbols-rounded" aria-hidden="true">search</span>
             <input id="search" type="search" placeholder="Rechercher un jeu…" />
           </div>
 
         </div>
+
       </div>
 
       <div class="topbar-right">
+        <div class="card-size">
+          <span class="material-symbols-rounded" title="Taille des cartes">view_module</span>
+          <input id="card-size" type="range" min="180" max="320" step="10" value="220" />
+        </div>
         <button id="btn-scan" class="btn btn-primary icon-only" type="button" title="Rescanner">
           <span class="material-symbols-rounded" aria-hidden="true">refresh</span>
         </button>
 
-        <button id="btn-archive" class="btn btn-ghost" type="button" title="Archive">
+        <button id="btn-archive" class="btn btn-ghost icon-only" type="button" title="Archive">
           <span class="material-symbols-rounded" aria-hidden="true">inventory_2</span>
-          <span class="btn-text">Archive</span>
-        </button>
-
-        <button id="btn-sort" class="btn btn-ghost" type="button" title="Tri alphabétique">
-          <span class="material-symbols-rounded" aria-hidden="true">sort_by_alpha</span>
-          <span class="btn-text">A→Z</span>
         </button>
 
         <a id="btn-settings" class="btn btn-ghost icon-only" href="/settings.html" title="Paramètres">

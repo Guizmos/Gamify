@@ -1,4 +1,5 @@
 const statusEl = document.getElementById("status");
+const cardSizeEl = document.getElementById("card-size");
 const gridEl = document.getElementById("grid");
 const scanBtn = document.getElementById("btn-scan");
 const archiveBtn = document.getElementById("btn-archive");
@@ -13,7 +14,6 @@ let isAdmin = false;
 let showArchive = false;
 let sortMode = "name_asc";
 
-// ✅ filtre plateforme persistant
 let platformFilter = localStorage.getItem("gamify_platform_filter") || "";
 
 function esc(str){
@@ -34,6 +34,34 @@ function formatGB(bytes){
   const gb = n / (1024 ** 3);
   return gb >= 100 ? gb.toFixed(0) : gb.toFixed(1);
 }
+
+function applyCardSize(px){
+  const v = Number(px) || 220;
+
+  document.documentElement.style.setProperty("--card-min", `${v}px`);
+
+  const minW = 180, maxW = 320;
+  const t = Math.max(0, Math.min(1, (v - minW) / (maxW - minW)));
+  const ratio = 1.05 + t * (1.40 - 1.05);
+
+  const coverH = Math.round(v * ratio);
+  document.documentElement.style.setProperty("--cover-h", `${coverH}px`);
+}
+
+
+(function initCardSize(){
+  if (!cardSizeEl) return;
+
+  const saved = Number(localStorage.getItem("gamify_card_size")) || 220;
+  cardSizeEl.value = String(saved);
+  applyCardSize(saved);
+
+  cardSizeEl.addEventListener("input", () => {
+    const v = Number(cardSizeEl.value);
+    applyCardSize(v);
+    localStorage.setItem("gamify_card_size", String(v));
+  });
+})();
 
 async function ensureLoggedIn() {
   const res = await fetch("/api/auth/me");
@@ -325,7 +353,7 @@ function render(games){
           </div>
 
           ${isAdmin ? `
-            <div class="row" style="margin-top:10px;">
+            <div class="row">
               ${badge("Notif: " + g.notif_status, notifCls)}
               ${badge("IGDB: " + g.igdb_status, igdbCls)}
             </div>
@@ -485,7 +513,6 @@ function setBtnText(btn, text) {
 function updateArchiveBtn() {
   if (!archiveBtn) return;
   archiveBtn.classList.toggle("active", showArchive);
-  setBtnText(archiveBtn, showArchive ? "Archive (ON)" : "Archive");
 }
 
 function updateSortBtn() {
