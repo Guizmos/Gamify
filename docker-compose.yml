@@ -5,7 +5,6 @@ services:
     environment:
       - GAMES_ROOT=/games
       - DATA_DIR=/data
-<<<<<<< HEAD
       - DB_PATH=/data/gamify.sqlite
       - JWT_SECRET=${JWT_SECRET:-change_me_dev_only}
       - ADMIN_BOOTSTRAP_USER=${ADMIN_BOOTSTRAP_USER:-admin}
@@ -17,24 +16,4 @@ services:
     volumes:
       - /volume1/Docker/Gamify/data:/data
       - /volume1/Jeux:/games:ro
-=======
-
-      - DB_PATH=/data/gamify.sqlite
-
-      - JWT_SECRET=${JWT_SECRET:-change_me_dev_only}
-
-      - ADMIN_BOOTSTRAP_USER=${ADMIN_BOOTSTRAP_USER:-admin}
-      - ADMIN_BOOTSTRAP_PASS=${ADMIN_BOOTSTRAP_PASS:-changeme}
-
-      - IGDB_CLIENT_ID=IGDBCLIENTID
-      - IGDB_CLIENT_SECRET=IGDBCLIENTSECRET
-
-    ports:
-      - "7071:8080"
-
-    volumes:
-      - /volume1/Docker/Gamify/data:/data
-      - /volume1/Jeux:/games:ro
-      
->>>>>>> 452e076 (1)
     restart: unless-stopped
