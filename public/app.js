@@ -8,6 +8,24 @@ const searchEl = document.getElementById("search");
 const logoutBtn = document.getElementById("btn-logout");
 const settingsBtn = document.getElementById("btn-settings");
 const themeToggleBtn = document.getElementById("theme-toggle");
+const searchToggleBtn = document.getElementById("btn-search-toggle");
+const topbarEl = document.querySelector(".topbar");
+
+function toggleMobileSearch(){
+  if (!topbarEl) return;
+  topbarEl.classList.toggle("search-open");
+  if (topbarEl.classList.contains("search-open")) {
+    setTimeout(() => searchEl?.focus(), 0);
+  }
+}
+
+if (searchToggleBtn) {
+  searchToggleBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    toggleMobileSearch();
+  });
+}
+
 if (themeToggleBtn) {
   themeToggleBtn.addEventListener("click", () => {
     const mode = loadTheme();
@@ -292,16 +310,12 @@ function ensureGameModal() {
           </div>
         </div>
       </div>
-
-      <div class="modal__foot">
-        <button class="btn btn-ghost" type="button" data-close>Fermer</button>
-      </div>
     </div>
   `;
   document.body.appendChild(modal);
 
   modal.addEventListener("click", (e) => {
-    if (e.target.matches("[data-close]")) {
+    if (e.target.closest("[data-close]")) {
       modal.classList.remove("open");
       document.body.classList.remove("modal-open");
     }
