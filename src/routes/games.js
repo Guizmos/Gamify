@@ -6,28 +6,19 @@ const router = express.Router();
 router.get("/games", (req, res) => {
   const db = getDb();
 
-  // filtres
   const search = (req.query.search || "").trim();
   const platform = (req.query.platform || "").trim();
   const notif_status = (req.query.notif_status || "").trim();
   const igdb_status = (req.query.igdb_status || "").trim();
-
-  // archive (mode normal = présents, mode archive_only = supprimés)
   const archiveOnly = String(req.query.archive_only || "0") === "1";
-
-  // tri (date_desc par défaut)
   const sort = String(req.query.sort || "date_desc").toLowerCase();
-
   const limit = Math.min(Number(req.query.limit || 200), 500);
-
   const where = [];
   const params = {};
 
-  // filtre archive
   if (archiveOnly) where.push("(is_deleted = 1 OR is_archived = 1)");
   else where.push("(is_deleted = 0 AND is_archived = 0)");
 
-  // autres filtres
   if (search) {
     where.push("(display_name LIKE @q OR folder_name LIKE @q)");
     params.q = `%${search}%`;
@@ -45,8 +36,7 @@ router.get("/games", (req, res) => {
     params.igdb_status = igdb_status;
   }
 
-  // ORDER BY dynamique
-  let orderBy = "datetime(detected_at) DESC"; // défaut
+  let orderBy = "datetime(detected_at) DESC";
   if (sort === "name_asc") orderBy = "LOWER(display_name) ASC";
   else if (sort === "name_desc") orderBy = "LOWER(display_name) DESC";
   else if (sort === "date_asc") orderBy = "datetime(detected_at) ASC";
@@ -82,10 +72,6 @@ router.get("/games", (req, res) => {
 const { requireAuth, requireAdmin } = require("../auth");
 const { searchGamesByName, getGameDetailsById } = require("../igdb");
 
-/**
- * Admin : chercher plusieurs résultats IGDB pour un jeu
- * GET /api/games/:id/igdb-search
- */
 router.get("/games/:id/igdb-search", requireAuth, requireAdmin, async (req, res) => {
   const db = getDb();
   const id = Number(req.params.id);
@@ -103,11 +89,6 @@ router.get("/games/:id/igdb-search", requireAuth, requireAdmin, async (req, res)
   }
 });
 
-/**
- * Admin : appliquer un résultat IGDB (id/slug/cover/url) au jeu
- * POST /api/games/:id/igdb-apply
- * body: { igdb_id, slug, cover_url, igdb_url }
- */
 router.post("/games/:id/igdb-apply", requireAuth, requireAdmin, (req, res) => {
   const db = getDb();
   const id = Number(req.params.id);
@@ -137,10 +118,6 @@ router.post("/games/:id/igdb-apply", requireAuth, requireAdmin, (req, res) => {
   res.json({ ok:true });
 });
 
-/**
- * User/Admin : récupérer les détails IGDB d’un jeu lié
- * GET /api/games/:id/igdb-details
- */
 router.get("/games/:id/igdb-details", requireAuth, async (req, res) => {
   const db = getDb();
   const id = Number(req.params.id);
@@ -158,7 +135,6 @@ router.get("/games/:id/igdb-details", requireAuth, async (req, res) => {
     const details = await getGameDetailsById(row.igdb_id);
     if (!details) return res.json({ ok:false, error:"IGDB_NOT_FOUND" });
 
-    // URL IGDB si manquante
     const igdb_url = row.igdb_url || (details.slug ? `https://www.igdb.com/games/${details.slug}` : null);
 
     res.json({
@@ -173,11 +149,6 @@ router.get("/games/:id/igdb-details", requireAuth, async (req, res) => {
   }
 });
 
-/**
- * Admin : archiver/désarchiver manuellement un jeu
- * POST /api/games/:id/archive
- * body optionnel: { archived: 0|1 } sinon toggle
- */
 router.post("/games/:id/archive", requireAuth, requireAdmin, (req, res) => {
   const db = getDb();
   const id = Number(req.params.id);

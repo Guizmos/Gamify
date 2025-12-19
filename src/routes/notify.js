@@ -51,7 +51,6 @@ router.post("/games/:id/notify", async (req, res) => {
 
   const id = Number(req.params.id);
 
-  // ✅ IMPORTANT: on récupère aussi full_path + folder_size_bytes
   const game = db.prepare(`
     SELECT
       id,
@@ -68,12 +67,11 @@ router.post("/games/:id/notify", async (req, res) => {
   `).get(id);
 
   if (!game) return res.status(404).json({ ok:false, error:"Jeu introuvable" });
-  // ✅ si taille absente, calcule et persiste
   if (game && (game.folder_size_bytes === null || game.folder_size_bytes === undefined)) {
     const size = getPathSizeBytes(game.full_path);
     if (size !== null && size !== undefined) {
       db.prepare("UPDATE games SET folder_size_bytes=? WHERE id=?").run(size, id);
-      game.folder_size_bytes = size; // pour le template Telegram tout de suite
+      game.folder_size_bytes = size;
     }
   }
 

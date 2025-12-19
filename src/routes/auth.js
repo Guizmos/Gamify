@@ -21,7 +21,7 @@ router.post("/auth/login", (req, res) => {
   res.cookie("token", token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: false, // true quand tu seras en https derrière un reverse proxy
+    secure: false,
     maxAge: 7 * 24 * 3600 * 1000,
   });
 

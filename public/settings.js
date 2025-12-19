@@ -1,19 +1,17 @@
 const msg = document.getElementById("msg");
-
 const logoutBtn = document.getElementById("btn-logout");
-
 const enabled = document.getElementById("tg-enabled");
 const token = document.getElementById("tg-token");
 const chat = document.getElementById("tg-chat");
 const save = document.getElementById("tg-save");
 const test = document.getElementById("tg-test");
 const tgCard = document.getElementById("tg-card");
-
 const tgMsgCard = document.getElementById("tg-msg-card");
 const tgTemplate = document.getElementById("tg-template");
 const tgTplSave = document.getElementById("tg-template-save");
 const tgTplReset = document.getElementById("tg-template-reset");
 const tgTplMsg = document.getElementById("tg-template-msg");
+const themeSelect = document.getElementById("theme-select");
 
 const DEFAULT_TG_TEMPLATE =
   "🎮 Nouveau jeu : {name}\n🕹 Plateforme : {platform}\n📦 Taille : {size_gb} Go\n📁 Dossier : {folder}";
@@ -42,6 +40,23 @@ function flashBtn(btn, text, ms = 3000, keepIcon = true) {
   }, ms);
 }
 
+function applyTheme(mode) {
+  const root = document.documentElement;
+
+  root.classList.remove("theme-light", "theme-dark");
+
+  if (mode === "light") root.classList.add("theme-light");
+  if (mode === "dark") root.classList.add("theme-dark");
+}
+
+function loadTheme() {
+  return localStorage.getItem("gamify_theme") || "system";
+}
+
+function saveTheme(mode) {
+  localStorage.setItem("gamify_theme", mode);
+  applyTheme(mode);
+}
 
 function setTplMsg(t) {
   if (tgTplMsg) tgTplMsg.textContent = t || "";
@@ -55,16 +70,12 @@ function showHideTelegramMessageCard() {
 function applyTelegramUiState() {
   const isOn = !!enabled?.checked;
 
-  // griser la carte
   if (tgCard) tgCard.classList.toggle("is-disabled", !isOn);
-
-  // bloquer les champs + boutons (mais PAS le toggle)
   if (token) token.disabled = !isOn;
   if (chat) chat.disabled = !isOn;
   if (save) save.disabled = !isOn;
   if (test) test.disabled = !isOn;
 
-  // NEW: affiche/masque la carte message
   showHideTelegramMessageCard();
 }
 
@@ -85,8 +96,6 @@ async function requireAdmin() {
     if (token) token.disabled = true;
     if (chat) chat.disabled = true;
     if (tgCard) tgCard.classList.add("is-disabled");
-
-    // NEW: bloque aussi la carte message
     if (tgMsgCard) tgMsgCard.style.display = "none";
 
     return null;
@@ -107,17 +116,11 @@ async function loadTelegram() {
   if (enabled) enabled.checked = !!data.telegram_enabled;
   if (token) token.value = data.telegram_bot_token || "";
   if (chat) chat.value = data.telegram_chat_id || "";
-
-  // NEW: template
   if (tgTemplate) tgTemplate.value = (data.telegram_message_template || DEFAULT_TG_TEMPLATE);
 
   applyTelegramUiState();
 }
 
-/**
- * ✅ Persist uniquement l'état ON/OFF
- * (ne touche pas au token/chat => pas de wipe accidentel)
- */
 async function saveTelegramEnabledOnly() {
   if (!enabled) return;
 
@@ -424,6 +427,18 @@ if (logoutBtn) {
     location.href = "/login.html";
   });
 }
+
+(function initThemeSettings(){
+  const current = loadTheme();
+  applyTheme(current);
+
+  if (themeSelect) {
+    themeSelect.value = current;
+    themeSelect.addEventListener("change", () => {
+      saveTheme(themeSelect.value);
+    });
+  }
+})();
 
 (async () => {
   const u = await requireAdmin();

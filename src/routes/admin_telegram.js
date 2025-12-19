@@ -42,7 +42,6 @@ router.put("/admin/telegram", requireAuth, requireAdmin, (req, res) => {
     telegram_message_template
   } = req.body || {};
 
-  // Stockage robuste en 1/0 (uniquement si fourni)
   if (typeof telegram_enabled !== "undefined") {
     setSetting(db, "telegram_enabled", telegram_enabled ? "1" : "0");
   }
@@ -54,7 +53,6 @@ router.put("/admin/telegram", requireAuth, requireAdmin, (req, res) => {
     setSetting(db, "telegram_chat_id", telegram_chat_id.trim());
   }
 
-  // NEW: template
   if (typeof telegram_message_template === "string") {
     const v = telegram_message_template.trim() || DEFAULT_TG_TEMPLATE;
     setSetting(db, "telegram_message_template", v);

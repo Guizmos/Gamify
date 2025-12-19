@@ -4,7 +4,6 @@ const Database = require("better-sqlite3");
 
 const ROOT = __dirname;
 
-// cherche dans ./data et ./ (facile à élargir après)
 const CANDIDATE_DIRS = [
   path.join(ROOT, "data"),
   ROOT
@@ -33,7 +32,6 @@ if (!candidates.length) {
   process.exit(1);
 }
 
-// prends la première trouvée
 const dbPath = candidates[0];
 console.log("\nDB utilisée:", dbPath);
 

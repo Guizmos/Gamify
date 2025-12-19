@@ -7,6 +7,15 @@ const sortBtn = document.getElementById("btn-sort");
 const searchEl = document.getElementById("search");
 const logoutBtn = document.getElementById("btn-logout");
 const settingsBtn = document.getElementById("btn-settings");
+const themeToggleBtn = document.getElementById("theme-toggle");
+if (themeToggleBtn) {
+  themeToggleBtn.addEventListener("click", () => {
+    const mode = loadTheme();
+    const eff = effectiveTheme(mode);
+    const next = (eff === "light") ? "dark" : "light";
+    setTheme(next);
+  });
+}
 
 let currentUser = null;
 let isAdmin = false;
@@ -15,6 +24,54 @@ let showArchive = false;
 let sortMode = "name_asc";
 
 let platformFilter = localStorage.getItem("gamify_platform_filter") || "";
+
+function getPreferredSystemTheme(){
+  return window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches
+    ? "light"
+    : "dark";
+}
+
+function applyTheme(mode) {
+  const root = document.documentElement;
+  root.classList.remove("theme-light", "theme-dark");
+  if (mode === "light") root.classList.add("theme-light");
+  if (mode === "dark") root.classList.add("theme-dark");
+}
+
+function loadTheme() {
+  return localStorage.getItem("gamify_theme") || "system";
+}
+
+function setTheme(mode){
+  localStorage.setItem("gamify_theme", mode);
+  applyTheme(mode);
+  updateThemeToggleIcon();
+}
+
+function effectiveTheme(mode){
+  if (mode === "system") return getPreferredSystemTheme();
+  return mode;
+}
+
+function updateThemeToggleIcon(){
+  const ico = document.getElementById("theme-toggle-ico");
+  if (!ico) return;
+
+  const mode = loadTheme();
+  const eff = effectiveTheme(mode);
+
+  ico.textContent = (eff === "light") ? "light_mode" : "dark_mode";
+}
+
+(function initTheme(){
+  const mode = loadTheme();
+  applyTheme(mode);
+  updateThemeToggleIcon();
+
+  const mq = window.matchMedia?.("(prefers-color-scheme: light)");
+  if (mq && mq.addEventListener) mq.addEventListener("change", updateThemeToggleIcon);
+})();
+
 
 function esc(str){
   return String(str ?? "").replace(/[&<>"']/g, s => ({
@@ -81,12 +138,10 @@ async function ensureLoggedIn() {
   const sortBtn     = document.getElementById("btn-sort");
   const logoutBtn   = document.getElementById("btn-logout");
 
-  // Admin only
   if (scanBtn)     scanBtn.style.display     = isAdmin ? "" : "none";
   if (archiveBtn)  archiveBtn.style.display  = isAdmin ? "" : "none";
   if (settingsBtn) settingsBtn.style.display = isAdmin ? "" : "none";
 
-  // Toujours visibles
   if (sortBtn)   sortBtn.style.display   = "";
   if (logoutBtn) logoutBtn.style.display = "";
 
@@ -117,11 +172,9 @@ function closeMenu() {
 }
 
 document.addEventListener("click", (e) => {
-  // click hors menu => ferme
   if (!e.target.closest(".card-menu")) closeMenu();
 });
 
-/* --- Filtre plateforme (menu style ⋮) --- */
 const platformMenuBtn = document.getElementById("platform-menu-btn");
 const platformMenu    = document.getElementById("platform-menu");
 
@@ -130,7 +183,6 @@ if (platformMenuBtn && platformMenu) {
     e.preventDefault();
     e.stopPropagation();
 
-    // ferme l’ancien menu (carte ou filtre)
     if (openMenuEl && openMenuEl !== platformMenu) {
       openMenuEl.classList.remove("open");
     }

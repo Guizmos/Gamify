@@ -15,7 +15,6 @@ router.get("/settings", (req, res) => {
   });
 });
 
-// Ajout dossier surveillé
 router.post("/settings/watched-folders", (req, res) => {
   const { path: folderPath } = req.body || {};
   if (!folderPath || typeof folderPath !== "string") {
@@ -31,7 +30,6 @@ router.post("/settings/watched-folders", (req, res) => {
   }
 });
 
-// Activer/désactiver
 router.patch("/settings/watched-folders/:id", (req, res) => {
   const id = Number(req.params.id);
   const { enabled } = req.body || {};

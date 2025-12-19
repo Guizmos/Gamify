@@ -13,7 +13,7 @@ btn.addEventListener("click", async () => {
     });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || "Erreur login");
-    window.location.href = "/"; // retourne sur l’app
+    window.location.href = "/";
   } catch (e) {
     msg.textContent = e.message;
   }

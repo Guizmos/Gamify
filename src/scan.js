@@ -161,9 +161,6 @@ async function scanOnce() {
       continue;
     }
 
-    // -------------------------
-    // 1) PC : tous les dossiers à la racine = PC
-    // -------------------------
     const gameDirs = listDirectories(root);
 
     for (const gameDir of gameDirs) {
@@ -229,9 +226,6 @@ async function scanOnce() {
       }
     }
 
-    // -------------------------
-    // 2) Switch : Emulateur/Swicth/*.xci
-    // -------------------------
     const switchDir1 = path.join(root, "Emulateur", "Swicth");
     const switchDir2 = path.join(root, "Emulateur", "Switch");
     const switchDir = fs.existsSync(switchDir1) ? switchDir1 : (fs.existsSync(switchDir2) ? switchDir2 : null);

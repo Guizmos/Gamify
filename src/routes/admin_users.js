@@ -9,7 +9,6 @@ function isStrongEnough(pw) {
   return typeof pw === "string" && pw.trim().length >= 6;
 }
 
-// LIST users
 router.get("/admin/users", requireAuth, requireAdmin, (req, res) => {
   const db = getDb();
   const rows = db.prepare(`
@@ -21,7 +20,6 @@ router.get("/admin/users", requireAuth, requireAdmin, (req, res) => {
   res.json({ ok: true, users: rows });
 });
 
-// CREATE user
 router.post("/admin/users", requireAuth, requireAdmin, (req, res) => {
   const db = getDb();
   const { username, password, role } = req.body || {};
@@ -44,7 +42,6 @@ router.post("/admin/users", requireAuth, requireAdmin, (req, res) => {
   res.json({ ok: true, id: info.lastInsertRowid });
 });
 
-// CHANGE password
 router.put("/admin/users/:id/password", requireAuth, requireAdmin, (req, res) => {
   const db = getDb();
   const id = Number(req.params.id);
@@ -62,13 +59,11 @@ router.put("/admin/users/:id/password", requireAuth, requireAdmin, (req, res) =>
   res.json({ ok: true });
 });
 
-// DELETE user
 router.delete("/admin/users/:id", requireAuth, requireAdmin, (req, res) => {
   const db = getDb();
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ ok: false, error: "id invalide" });
 
-  // Empêche suppression du dernier admin
   const target = db.prepare("SELECT id, role FROM users WHERE id=?").get(id);
   if (!target) return res.status(404).json({ ok: false, error: "user introuvable" });
 

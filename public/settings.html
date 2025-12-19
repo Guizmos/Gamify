@@ -13,7 +13,6 @@
 <body>
   <div class="app">
 
-    <!-- Topbar -->
     <header class="topbar">
       <div class="topbar-left">
         <h1 class="app-title">Paramètres</h1>
@@ -31,7 +30,6 @@
 
     <main class="settings-grid">
 
-      <!-- ================= TELEGRAM ================= -->
       <section id="tg-card" class="card settings-card">
         <div class="settings-card__head">
           <div>
@@ -63,7 +61,6 @@
         </div>
       </section>
 
-      <!-- ================= MESSAGE TELEGRAM ================= -->
       <section id="tg-msg-card" class="card settings-card" style="display:none;">
         <div class="settings-card__head">
           <div>
@@ -96,7 +93,6 @@
         </div>
       </section>
 
-      <!-- ================= USERS ================= -->
       <section id="users-card" class="card settings-card">
         <div class="settings-card__head">
           <div>
@@ -142,12 +138,32 @@
         </div>
       </section>
 
+      <section id="appearance-card" class="card settings-card">
+        <div class="settings-card__head">
+          <div>
+            <h2 class="settings-title">Apparence</h2>
+            <p class="muted settings-sub">Choix du thème de l’interface</p>
+          </div>
+        </div>
+
+        <div class="settings-card__body">
+          <label class="settings-label">
+            Thème
+            <select id="theme-select">
+              <option value="system" selected>Système</option>
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+            </select>
+          </label>
+
+        </div>
+      </section>
+
       <p id="msg" class="muted"></p>
     </main>
 
   </div>
 
-  <!-- ================= USERS MODAL ================= -->
   <div id="users-modal" class="modal" aria-hidden="true">
     <div class="modal__backdrop" data-close="1"></div>
 

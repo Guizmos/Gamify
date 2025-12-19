@@ -112,9 +112,6 @@ async function searchGameByName(name) {
   };
 }
 
-/**
- * ✅ Multi résultats pour choix manuel
- */
 async function searchGamesByName(name, limit = 8) {
   const q = normalizeName(name);
   if (!q) return { query: q, hits: [] };
