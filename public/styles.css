@@ -1228,6 +1228,7 @@ html.theme-light .game-row--summary{
    SYSTEM THEME (auto)
    => si pas de .theme-dark/.theme-light
    ========================= */
+   
 @media (prefers-color-scheme: light){
   :root:not(.theme-dark):not(.theme-light){
     --bg:#f7f8fc;
